@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlobalShield Gateway — Установка</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #060609;
+    --card: rgba(255,255,255,0.04);
+    --border: rgba(255,255,255,0.08);
+    --blue: #3b82f6;
+    --emerald: #10b981;
+    --gold: #c9a84c;
+    --text: #e2e8f0;
+    --muted: #64748b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 70% 60% at 10% 10%, rgba(59,130,246,0.07) 0%, transparent 55%),
+      radial-gradient(ellipse 50% 50% at 90% 80%, rgba(16,185,129,0.05) 0%, transparent 55%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+  /* Hero */
+  .hero { padding: 80px 0 60px; text-align: center; }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 5px 14px; border-radius: 20px;
+    background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.25);
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    color: var(--gold); text-transform: uppercase; margin-bottom: 28px;
+  }
+  .hero h1 { font-size: clamp(36px,6vw,58px); font-weight: 800; color: #f1f5f9; line-height: 1.1; margin-bottom: 18px; }
+  .hero h1 span { color: var(--gold); }
+  .hero p { font-size: 17px; color: var(--muted); max-width: 520px; margin: 0 auto 40px; line-height: 1.65; }
+  .install-box {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px;
+    padding: 18px 22px;
+    display: flex; align-items: center; gap: 14px;
+    max-width: 600px; margin: 0 auto;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .install-box:hover { border-color: rgba(59,130,246,0.4); background: rgba(59,130,246,0.05); }
+  .install-box code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; color: #93c5fd; flex: 1; text-align: left;
+    word-break: break-all;
+  }
+  .copy-btn {
+    background: var(--blue); color: white; border: none;
+    border-radius: 8px; padding: 8px 14px;
+    font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700;
+    cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    transition: background 0.18s;
+  }
+  .copy-btn:hover { background: #2563eb; }
+
+  /* Section */
+  section { padding: 56px 0; border-top: 1px solid var(--border); }
+  .section-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+    color: var(--muted); text-transform: uppercase; margin-bottom: 24px;
+  }
+  h2 { font-size: 26px; font-weight: 800; color: #f1f5f9; margin-bottom: 8px; }
+  h3 { font-size: 16px; font-weight: 700; color: #f1f5f9; margin-bottom: 8px; }
+  p { color: var(--muted); line-height: 1.7; font-size: 14px; }
+
+  /* Cards */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 28px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+  }
+  .card-icon { font-size: 28px; margin-bottom: 12px; }
+  .card h3 { margin-bottom: 6px; }
+
+  /* Steps */
+  .steps { display: flex; flex-direction: column; gap: 0; margin-top: 28px; }
+  .step { display: flex; gap: 20px; padding: 24px 0; border-bottom: 1px solid var(--border); }
+  .step:last-child { border-bottom: none; }
+  .step-num {
+    width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+    background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 14px; color: #93c5fd;
+  }
+  .step-body { flex: 1; }
+  .step-body h3 { color: #f1f5f9; margin-bottom: 6px; }
+  .step-body p { margin-bottom: 12px; }
+  .code-block {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px; padding: 14px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; color: #93c5fd;
+    white-space: pre; overflow-x: auto;
+    margin-top: 10px;
+    position: relative;
+  }
+  .code-block .comment { color: var(--muted); }
+
+  /* Requirements */
+  .req-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+  .req-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 13px;
+  }
+  .req-item .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--emerald); flex-shrink: 0; }
+
+  /* Modes table */
+  .modes { display: flex; flex-direction: column; gap: 8px; margin-top: 20px; }
+  .mode-row {
+    display: grid; grid-template-columns: 100px 1fr;
+    gap: 14px; align-items: center;
+    padding: 12px 16px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .mode-badge {
+    display: inline-flex; align-items: center;
+    padding: 3px 10px; border-radius: 6px;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    width: fit-content;
+  }
+
+  /* Footer */
+  footer { padding: 40px 0; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+  footer p { font-size: 13px; }
+  .footer-link { color: #60a5fa; text-decoration: none; }
+  .footer-link:hover { text-decoration: underline; }
+
+  @media (max-width: 600px) {
+    .req-grid { grid-template-columns: 1fr; }
+    .mode-row { grid-template-columns: 1fr; }
+    .hero { padding: 50px 0 40px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-badge">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Open Source · v1.0
+    </div>
+    <h1>GlobalShield<br><span>Gateway</span></h1>
+    <p>Умный прокси-шлюз для локальной сети. Устанавливается одной командой на любое Linux-устройство.</p>
+
+    <div class="install-box" onclick="copyInstall()">
+      <code id="installCmd">bash &lt;(curl -fsSL https://raw.githubusercontent.com/SanSanichSan/gsg/main/install.sh)</code>
+      <button class="copy-btn" id="copyBtn">Скопировать</button>
+    </div>
+    <p style="font-size:12px;margin-top:14px;color:rgba(100,116,139,0.5);">Требуются права root · Поддерживается Debian / Ubuntu / Armbian</p>
+  </div>
+
+  <!-- What it does -->
+  <section>
+    <div class="section-label">Возможности</div>
+    <h2>Что умеет GSG</h2>
+    <div class="cards">
+      <div class="card">
+        <div class="card-icon">🛡️</div>
+        <h3>Smart-маршрутизация</h3>
+        <p>Автоматически направляет заблокированный трафик через прокси, всё остальное — напрямую.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">📱</div>
+        <h3>Режим на устройство</h3>
+        <p>Каждому устройству в сети — свой режим: Smart, Global, Bypass или Block.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🌐</div>
+        <h3>Веб-интерфейс</h3>
+        <p>Управление с любого браузера в локальной сети. Статистика трафика в реальном времени.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">⚡</div>
+        <h3>Прозрачный прокси</h3>
+        <p>Работает на уровне nftables TPROXY. Клиентам не нужно настраивать прокси.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">📦</div>
+        <h3>Docker Compose</h3>
+        <p>Все компоненты — изолированные контейнеры. Легко обновлять и откатывать.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔄</div>
+        <h3>Watchdog</h3>
+        <p>Аппаратный watchdog перезагружает устройство при зависании системы.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Requirements -->
+  <section>
+    <div class="section-label">Требования</div>
+    <h2>Что нужно для установки</h2>
+    <div class="req-grid">
+      <div class="req-item"><div class="dot"></div> Linux ARM64 / x86_64 (Raspberry Pi, Orange Pi, мини-ПК)</div>
+      <div class="req-item"><div class="dot"></div> Debian 11+ / Ubuntu 20.04+ / Armbian</div>
+      <div class="req-item"><div class="dot"></div> Docker 20+ (установится автоматически)</div>
+      <div class="req-item"><div class="dot"></div> Доступ root / sudo</div>
+      <div class="req-item"><div class="dot"></div> Подписка в формате Clash / V2Ray / Sing-Box</div>
+      <div class="req-item"><div class="dot"></div> Устройство должно быть шлюзом (gateway) сети</div>
+    </div>
+  </section>
+
+  <!-- Install steps -->
+  <section>
+    <div class="section-label">Установка</div>
+    <h2>Пошаговая установка</h2>
+    <div class="steps">
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h3>Настройте устройство как шлюз</h3>
+          <p>Устройство должно быть подключено к роутеру/провайдеру. В настройках роутера укажите IP устройства как основной шлюз (<strong>Default Gateway</strong>) для вашей сети, или включите DHCP на GSG и выключите на роутере.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h3>Запустите установщик</h3>
+          <p>Скопируйте команду и вставьте в терминал устройства (SSH или локально):</p>
+          <div class="code-block">bash &lt;(curl -fsSL https://raw.githubusercontent.com/SanSanichSan/gsg/main/install.sh)</div>
+          <p style="margin-top:10px;">Установщик спросит IP шлюза, LAN-интерфейс и диапазон DHCP.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h3>Откройте веб-интерфейс</h3>
+          <p>После сборки откройте в браузере:</p>
+          <div class="code-block">http://&lt;IP_УСТРОЙСТВА&gt;:8080</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h3>Добавьте подписку</h3>
+          <p>В разделе <strong>Подписка</strong> вставьте URL вашей прокси-подписки (Clash, V2Ray, Sing-Box). Нажмите <strong>Обновить</strong> — система скачает список узлов и применит конфиг.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <h3>Настройте устройства</h3>
+          <p>В разделе <strong>Устройства</strong> выберите режим для каждого клиента сети. По умолчанию — Smart (умный обход блокировок).</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Modes -->
+  <section>
+    <div class="section-label">Справочник</div>
+    <h2>Режимы устройств</h2>
+    <div class="modes">
+      <div class="mode-row">
+        <span class="mode-badge" style="background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);color:#60a5fa;">🧠 Smart</span>
+        <p>Блокированный трафик (YouTube, Instagram, Telegram и т.д.) идёт через прокси. Остальное — напрямую. <strong>Рекомендуется.</strong></p>
+      </div>
+      <div class="mode-row">
+        <span class="mode-badge" style="background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);color:#c084fc;">🌐 Global</span>
+        <p>Весь трафик через прокси-узел.</p>
+      </div>
+      <div class="mode-row">
+        <span class="mode-badge" style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#fbbf24;">⚡ Bypass</span>
+        <p>Прямое подключение, прокси не используется. Удобно для умного дома, IoT-устройств.</p>
+      </div>
+      <div class="mode-row">
+        <span class="mode-badge" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.25);color:#f87171;">🚫 Block</span>
+        <p>Полная блокировка сетевого доступа для устройства.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Architecture -->
+  <section>
+    <div class="section-label">Архитектура</div>
+    <h2>Компоненты системы</h2>
+    <div class="cards" style="margin-top:20px;">
+      <div class="card">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--blue);margin-bottom:8px;">web-orchestrator</div>
+        <h3>Веб-интерфейс</h3>
+        <p>FastAPI + HTML dashboard. Порт 8080. Управление всеми настройками.</p>
+      </div>
+      <div class="card">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--emerald);margin-bottom:8px;">tunnel-provider</div>
+        <h3>Прокси-ядро</h3>
+        <p>Mihomo (Clash Meta). TPROXY на порту 12345. Загружает подписку и строит правила.</p>
+      </div>
+      <div class="card">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#f59e0b;margin-bottom:8px;">net-enforcer</div>
+        <h3>Файрвол</h3>
+        <p>nftables. Перенаправляет трафик на TPROXY. Управляет bypass-списком.</p>
+      </div>
+      <div class="card">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#a78bfa;margin-bottom:8px;">registry-dhcp</div>
+        <h3>DHCP-сервер</h3>
+        <p>dnsmasq. Раздаёт IP-адреса, регистрирует имена устройств.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <p style="color:var(--muted);">GlobalShield Gateway · Open Source</p>
+    <div style="display:flex;gap:20px;">
+      <a class="footer-link" href="https://github.com/SanSanichSan/gsg">GitHub</a>
+      <a class="footer-link" href="https://github.com/SanSanichSan/gsg/issues">Сообщить о проблеме</a>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+function copyInstall() {
+  const cmd = 'bash <(curl -fsSL https://raw.githubusercontent.com/SanSanichSan/gsg/main/install.sh)';
+  navigator.clipboard.writeText(cmd).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = 'Скопировано ✓';
+    btn.style.background = '#10b981';
+    setTimeout(() => { btn.textContent = 'Скопировать'; btn.style.background = ''; }, 2000);
+  });
+}
+</script>
+
+</body>
+</html>

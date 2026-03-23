@@ -33,6 +33,7 @@ class TrafficMonitor:
     def __init__(self):
         self.active_conns = {}
         self.stats = defaultdict(lambda: {'total_up': 0, 'total_down': 0, 'speed_up': 0, 'speed_down': 0})
+        self.node_stats = defaultdict(lambda: {'total_up': 0, 'total_down': 0, 'speed_up': 0, 'speed_down': 0})
 
     async def poll_mihomo(self):
         async with httpx.AsyncClient() as client:
@@ -46,6 +47,9 @@ class TrafficMonitor:
                         for ip in self.stats:
                             self.stats[ip]['speed_up'] = 0
                             self.stats[ip]['speed_down'] = 0
+                        for node in self.node_stats:
+                            self.node_stats[node]['speed_up'] = 0
+                            self.node_stats[node]['speed_down'] = 0
 
                         current_active_ids = set()
 
@@ -55,6 +59,7 @@ class TrafficMonitor:
                             ip = meta.get('sourceIP', 'unknown')
                             up = int(conn.get('upload', 0))
                             down = int(conn.get('download', 0))
+                            chains = conn.get('chains', [])
 
                             current_active_ids.add(uid)
 
@@ -68,6 +73,13 @@ class TrafficMonitor:
                             self.stats[ip]['total_down'] += delta_down
                             self.stats[ip]['speed_up'] += delta_up
                             self.stats[ip]['speed_down'] += delta_down
+
+                            node = next((c for c in reversed(chains) if c not in ('DIRECT', 'REJECT', 'GLOBAL', '')), None)
+                            if node:
+                                self.node_stats[node]['total_up'] += delta_up
+                                self.node_stats[node]['total_down'] += delta_down
+                                self.node_stats[node]['speed_up'] += delta_up
+                                self.node_stats[node]['speed_down'] += delta_down
 
                             self.active_conns[uid] = {'up': up, 'down': down}
 
@@ -104,6 +116,10 @@ async def startup_event():
 @app.get("/api/traffic")
 async def get_traffic():
     return monitor.stats
+
+@app.get("/api/traffic/nodes")
+async def get_traffic_nodes():
+    return dict(monitor.node_stats)
 
 async def read_json(path: Path, default):
     if not path.exists():
