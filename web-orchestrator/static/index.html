@@ -1,0 +1,1877 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GlobalShield Gateway</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #050508;
+            --card: rgba(255,255,255,0.04);
+            --card-border: rgba(255,255,255,0.08);
+            --blue: #3b82f6;
+            --blue-glow: rgba(59,130,246,0.3);
+            --emerald: #10b981;
+            --emerald-glow: rgba(16,185,129,0.2);
+            --text: #e2e8f0;
+            --muted: #64748b;
+            --sidebar-w: 260px;
+            --gold: #c9a84c;
+            --gold-dim: rgba(201,168,76,0.15);
+            --gold-border: rgba(201,168,76,0.25);
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Syne', sans-serif;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Background mesh */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 15% 10%, rgba(59,130,246,0.06) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 85% 90%, rgba(16,185,129,0.04) 0%, transparent 55%),
+                radial-gradient(ellipse 50% 40% at 70% 20%, rgba(201,168,76,0.04) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Glass card */
+        .glass {
+            background: var(--card);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+        }
+
+        /* App chips */
+        .app-chip {
+            width: 36px; height: 36px;
+            border-radius: 9px;
+            display: inline-flex; align-items: center; justify-content: center;
+            color: var(--muted);
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .app-chip:hover { border-color: rgba(255,255,255,0.22); color: rgba(255,255,255,0.7); transform: scale(1.1); }
+        .app-chip.active { background: var(--chip-bg, rgba(59,130,246,0.15)); border-color: var(--chip-border, rgba(59,130,246,0.4)); color: var(--chip-color, #60a5fa); box-shadow: 0 0 8px var(--chip-border, rgba(59,130,246,0.3)); }
+        .app-chip .us-dot { position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; border-radius: 50%; background: #3b82f6; border: 1px solid var(--bg); }
+
+        /* Sidebar */
+        #sidebar {
+            width: var(--sidebar-w);
+            background: rgba(5,5,12,0.97);
+            border-right: 1px solid var(--card-border);
+            backdrop-filter: blur(40px);
+        }
+
+        /* Nav item */
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--muted);
+            cursor: pointer;
+            transition: all 0.18s ease;
+            border: 1px solid transparent;
+            letter-spacing: 0.01em;
+        }
+        .nav-item:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+        .nav-item.active {
+            color: #fff;
+            background: rgba(59,130,246,0.15);
+            border-color: rgba(59,130,246,0.3);
+            box-shadow: 0 0 20px rgba(59,130,246,0.12);
+        }
+
+        /* Mode segmented control */
+        .mode-seg {
+            display: flex;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 3px;
+        }
+        .mode-seg button {
+            flex: 1;
+            padding: 6px 0;
+            border-radius: 7px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            color: var(--muted);
+            transition: all 0.2s ease;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+        }
+        .mode-seg button.active {
+            background: var(--blue);
+            color: #fff;
+            box-shadow: 0 2px 12px var(--blue-glow);
+        }
+
+        /* Metric pill */
+        .metric-pill {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 5px 10px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+        }
+
+        /* Status badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+        .status-badge.online {
+            background: rgba(16,185,129,0.12);
+            border: 1px solid rgba(16,185,129,0.25);
+            color: #34d399;
+        }
+        .status-badge.offline {
+            background: rgba(239,68,68,0.12);
+            border: 1px solid rgba(239,68,68,0.25);
+            color: #f87171;
+        }
+        .status-badge.loading {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--muted);
+        }
+
+        /* Pulse dot */
+        .pulse-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            position: relative;
+        }
+        .pulse-dot.green { background: var(--emerald); }
+        .pulse-dot.red { background: #ef4444; }
+        .pulse-dot::after {
+            content: '';
+            position: absolute;
+            inset: -3px;
+            border-radius: 50%;
+            border: 2px solid currentColor;
+            opacity: 0;
+            animation: ripple 2s ease-out infinite;
+        }
+        .pulse-dot.green::after { border-color: var(--emerald); }
+        .pulse-dot.red::after { border-color: #ef4444; }
+        @keyframes ripple {
+            0% { opacity: 0.6; transform: scale(0.8); }
+            100% { opacity: 0; transform: scale(2); }
+        }
+
+        /* Route line animation */
+        .route-line { position: relative; height: 2px; background: rgba(255,255,255,0.06); border-radius: 1px; overflow: visible; }
+        .route-line .packet {
+            position: absolute;
+            top: 50%; transform: translateY(-50%);
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--blue);
+            box-shadow: 0 0 8px var(--blue-glow);
+            animation: movePacket 2.4s linear infinite;
+        }
+        .route-line .packet:nth-child(2) { animation-delay: -0.8s; }
+        .route-line .packet:nth-child(3) { animation-delay: -1.6s; }
+        .route-line.emerald .packet { background: var(--emerald); box-shadow: 0 0 8px var(--emerald-glow); }
+        .route-line.blue .packet { background: var(--blue); box-shadow: 0 0 8px var(--blue-glow); }
+        .route-line.red .packet { background: #ef4444; box-shadow: 0 0 8px rgba(239,68,68,0.3); animation: none; width: 4px; height: 4px; left: 50%; }
+        .route-line.dim { opacity: 0.3; }
+        .route-line.dim .packet { animation: none; left: 50%; }
+        @keyframes movePacket {
+            0% { left: -4px; opacity: 0; }
+            5% { opacity: 1; }
+            95% { opacity: 1; }
+            100% { left: calc(100% + 4px); opacity: 0; }
+        }
+
+        /* Node card */
+        .node-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            cursor: pointer;
+            transition: all 0.18s ease;
+        }
+        .node-card:hover { border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.05); }
+        .node-card.selected {
+            background: rgba(59,130,246,0.1);
+            border-color: rgba(59,130,246,0.4);
+            box-shadow: 0 0 20px rgba(59,130,246,0.1);
+        }
+
+        /* Device row */
+        .device-row {
+            display: grid;
+            grid-template-columns: 1fr auto auto auto;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            transition: background 0.15s ease;
+        }
+        .device-row:last-child { border-bottom: none; }
+        .device-row:hover { background: rgba(255,255,255,0.02); }
+
+        /* Device toggle */
+        .dev-toggle { position: relative; width: 42px; height: 24px; }
+        .dev-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+        .dev-toggle .track {
+            position: absolute;
+            inset: 0;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .dev-toggle input:checked ~ .track { background: var(--emerald); border-color: var(--emerald); box-shadow: 0 0 12px var(--emerald-glow); }
+        .dev-toggle .thumb {
+            position: absolute;
+            top: 3px; left: 3px;
+            width: 16px; height: 16px;
+            border-radius: 50%;
+            background: white;
+            transition: transform 0.2s ease;
+            pointer-events: none;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+        }
+        .dev-toggle input:checked ~ .thumb { transform: translateX(18px); }
+        .dev-toggle input:disabled ~ .track { opacity: 0.4; cursor: not-allowed; }
+
+        /* Custom select */
+        .gsg-select {
+            appearance: none;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: 'Syne', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 6px 28px 6px 10px;
+            outline: none;
+            cursor: pointer;
+            transition: border-color 0.18s;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 6px center;
+            background-repeat: no-repeat;
+            background-size: 16px 16px;
+        }
+        .gsg-select:focus { border-color: rgba(59,130,246,0.5); }
+        .gsg-select option { background: #0f0f1a; color: var(--text); }
+
+        /* Input */
+        .gsg-input {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            color: var(--text);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            padding: 10px 14px;
+            outline: none;
+            transition: all 0.18s ease;
+            width: 100%;
+        }
+        .gsg-input:focus { border-color: rgba(59,130,246,0.5); background: rgba(59,130,246,0.05); }
+        .gsg-input::placeholder { color: var(--muted); }
+
+        /* Button */
+        .btn-primary {
+            background: var(--blue);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 18px;
+            font-family: 'Syne', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            box-shadow: 0 2px 12px rgba(59,130,246,0.3);
+            white-space: nowrap;
+        }
+        .btn-primary:hover { background: #2563eb; box-shadow: 0 4px 20px rgba(59,130,246,0.4); transform: translateY(-1px); }
+        .btn-primary:active { transform: translateY(0); }
+
+        .btn-ghost {
+            background: rgba(255,255,255,0.06);
+            color: var(--text);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-family: 'Syne', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.18s ease;
+        }
+        .btn-ghost:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+
+        /* Section label */
+        .section-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+
+        /* Traffic display */
+        .traffic-cell { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); }
+
+        /* Staggered reveal */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .reveal { opacity: 0; animation: fadeUp 0.4s ease forwards; }
+        .reveal-1 { animation-delay: 0.05s; }
+        .reveal-2 { animation-delay: 0.12s; }
+        .reveal-3 { animation-delay: 0.19s; }
+        .reveal-4 { animation-delay: 0.26s; }
+
+        /* Tab content */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Logs */
+        .logs-scroll::-webkit-scrollbar { width: 5px; }
+        .logs-scroll::-webkit-scrollbar-track { background: transparent; }
+        .logs-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+        /* Connection overlay */
+        #conn-overlay {
+            position: fixed; inset: 0;
+            background: rgba(5,5,8,0.85);
+            backdrop-filter: blur(8px);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        #conn-overlay.show { display: flex; }
+
+        /* Mobile sidebar */
+        @media (max-width: 768px) {
+            #sidebar {
+                position: fixed;
+                inset-y: 0; left: 0;
+                z-index: 100;
+                transform: translateX(-100%);
+                transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+                width: 260px;
+            }
+            #sidebar.open { transform: translateX(0); }
+            body { overflow: auto; }
+        }
+
+        /* Scrollbar for main */
+        #main-scroll::-webkit-scrollbar { width: 6px; }
+        #main-scroll::-webkit-scrollbar-track { background: transparent; }
+        #main-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+
+        /* Flag node */
+        .flag-box {
+            width: 52px; height: 52px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 26px;
+        }
+
+        /* Ping color */
+        .ping-good { color: var(--emerald); }
+        .ping-med { color: #f59e0b; }
+        .ping-bad { color: #ef4444; }
+
+        /* Rule textarea */
+        .gsg-textarea {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            color: var(--text);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            padding: 10px 14px;
+            outline: none;
+            width: 100%;
+            resize: vertical;
+            transition: border-color 0.18s;
+            line-height: 1.6;
+        }
+        .gsg-textarea:focus { border-color: rgba(59,130,246,0.4); }
+        .gsg-textarea::placeholder { color: rgba(100,116,139,0.6); }
+
+        /* Checkbox custom */
+        .gsg-check { accent-color: var(--blue); width: 15px; height: 15px; cursor: pointer; }
+
+        /* Skeleton */
+        .skel { background: rgba(255,255,255,0.06); border-radius: 6px; animation: skelPulse 1.5s ease-in-out infinite; }
+        @keyframes skelPulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<!-- Connection lost overlay -->
+<div id="conn-overlay">
+    <div class="glass p-8 flex flex-col items-center gap-4 max-w-sm mx-4">
+        <div style="width:48px;height:48px;border-radius:14px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);display:flex;align-items:center;justify-content:center;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2"><path d="M18.36 6.64A9 9 0 0 1 20.77 15"/><path d="M6.16 6.16a9 9 0 1 0 12.68 12.68"/><path d="M12 2v4"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
+        </div>
+        <div class="text-center">
+            <div style="font-size:15px;font-weight:700;color:#f1f5f9;margin-bottom:4px;">Соединение потеряно</div>
+            <div style="font-size:12px;color:var(--muted);">Переподключение к шлюзу...</div>
+        </div>
+        <div style="display:flex;gap:4px;align-items:center;">
+            <div style="width:6px;height:6px;border-radius:50%;background:#ef4444;animation:skelPulse 1s ease-in-out infinite;"></div>
+            <div style="width:6px;height:6px;border-radius:50%;background:#ef4444;animation:skelPulse 1s ease-in-out 0.15s infinite;"></div>
+            <div style="width:6px;height:6px;border-radius:50%;background:#ef4444;animation:skelPulse 1s ease-in-out 0.3s infinite;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Mobile backdrop -->
+<div id="mobileBackdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:90;backdrop-filter:blur(2px);"></div>
+
+<!-- Logo watermark -->
+<div style="position:fixed;left:50%;top:50%;transform:translate(calc(-50% + var(--sidebar-w) / 2), -50%);pointer-events:none;z-index:2;opacity:0.16;">
+    <img src="/static/logo.png" alt="" style="width:1040px;height:1040px;object-fit:contain;filter:saturate(0.15) blur(0.3px);">
+</div>
+
+<div style="display:flex;height:100vh;position:relative;z-index:1;">
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="flex flex-col shrink-0" style="height:100vh;overflow-y:auto;">
+        <!-- Logo -->
+        <div style="padding:16px 18px;border-bottom:1px solid var(--card-border);background:linear-gradient(180deg,rgba(201,168,76,0.04) 0%,transparent 100%);">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <img src="/static/logo.png" alt="GlobalShield" style="width:42px;height:42px;border-radius:10px;object-fit:cover;flex-shrink:0;box-shadow:0 4px 16px rgba(201,168,76,0.25);border:1px solid var(--gold-border);">
+                <div>
+                    <div style="font-size:14px;font-weight:800;color:#f1f5f9;line-height:1.1;letter-spacing:0.02em;">GlobalShield</div>
+                    <div style="font-size:10px;color:var(--gold);font-weight:600;letter-spacing:0.08em;text-transform:uppercase;">Gateway</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System metrics -->
+        <div style="padding:14px 14px 12px;border-bottom:1px solid var(--card-border);">
+            <div class="section-label" style="margin-bottom:8px;">Система</div>
+            <div id="systemMetrics" style="display:flex;flex-direction:column;gap:4px;">
+                <div class="metric-pill skel" style="height:28px;"></div>
+                <div class="metric-pill skel" style="height:28px;"></div>
+                <div class="metric-pill skel" style="height:28px;"></div>
+            </div>
+        </div>
+
+        <!-- Network info -->
+        <div style="padding:10px 14px 12px;border-bottom:1px solid var(--card-border);">
+            <div class="section-label" style="margin-bottom:8px;">Сеть</div>
+            <div id="sidebarNetStats" style="display:flex;flex-direction:column;gap:4px;">
+                <div class="metric-pill skel" style="height:28px;"></div>
+                <div class="metric-pill skel" style="height:28px;"></div>
+            </div>
+        </div>
+
+        <!-- Global mode control -->
+        <div style="padding:12px 14px;border-bottom:1px solid var(--card-border);">
+            <div class="section-label" style="margin-bottom:8px;">Все устройства</div>
+            <select id="globalModeSelect" class="gsg-select" style="width:100%;margin-bottom:8px;">
+                <option value="">— Индивидуально —</option>
+                <option value="smart">Smart (умный)</option>
+                <option value="global">Через прокси</option>
+                <option value="bypass">Напрямую</option>
+                <option value="block">Заблокировать</option>
+            </select>
+        </div>
+
+        <!-- Nav -->
+        <nav style="padding:10px 10px;flex:1;display:flex;flex-direction:column;gap:2px;">
+            <div class="section-label" style="padding:4px 8px 6px;">Управление</div>
+            <div class="nav-item active" id="nav-devices" onclick="GatewayApp.ui.switchTab('tab-devices', this)">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18" stroke-width="3"/></svg>
+                Устройства
+            </div>
+            <div class="nav-item expert-item" id="nav-routing" onclick="GatewayApp.ui.switchTab('tab-routing', this)" style="display:flex;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Маршрутизация
+            </div>
+            <div class="nav-item expert-item" id="nav-dhcp" onclick="GatewayApp.ui.switchTab('tab-dhcp', this)" style="display:flex;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+                DHCP и Сеть
+            </div>
+            <div class="nav-item expert-item" id="nav-proxy" onclick="GatewayApp.ui.switchTab('tab-proxy', this)" style="display:flex;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                Прокси и Логи
+            </div>
+        </nav>
+    </aside>
+
+    <!-- MAIN -->
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;height:100vh;">
+
+        <!-- Mobile header -->
+        <header style="display:none;padding:0 16px;height:56px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--card-border);background:rgba(5,5,8,0.9);backdrop-filter:blur(20px);flex-shrink:0;" id="mobileHeader">
+            <button id="mobileMenuBtn" style="background:rgba(255,255,255,0.06);border:1px solid var(--card-border);border-radius:8px;padding:7px;color:var(--text);cursor:pointer;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <span style="font-size:15px;font-weight:800;">GlobalShield Gateway</span>
+            <div style="width:32px;"></div>
+        </header>
+
+        <main id="main-scroll" style="flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:20px;" id="mainContent">
+
+            <!-- Top row: Status + Subscription -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;" class="reveal reveal-1" id="topGrid">
+
+                <!-- Network Status card -->
+                <div class="glass" style="padding:24px;position:relative;overflow:hidden;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;">
+                        <div>
+                            <div style="font-size:16px;font-weight:800;color:#f1f5f9;">Состояние сети</div>
+                            <div style="font-size:11px;color:var(--muted);margin-top:2px;">Инспекция маршрута в реальном времени</div>
+                        </div>
+                        <span id="globalProtectionBadge" class="status-badge loading">
+                            <span style="animation:skelPulse 1s infinite;display:inline-block;width:7px;height:7px;border-radius:50%;background:currentColor;"></span>
+                            Проверка...
+                        </span>
+                    </div>
+
+                    <!-- Route visualization (rendered by JS) -->
+                    <div id="routeViz"></div>
+
+                    <!-- Traffic sparkline -->
+                    <div style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.04);padding-top:12px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                            <span class="section-label">График трафика · 60 сек</span>
+                            <div style="display:flex;gap:16px;align-items:baseline;">
+                                <div style="display:flex;flex-direction:column;align-items:flex-end;">
+                                    <span id="chartSpeedDown" style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#34d399;">0 B/s</span>
+                                    <span style="font-size:9px;color:rgba(100,116,139,0.6);">↓ <span id="chartTotalDown">0 B</span></span>
+                                </div>
+                                <div style="display:flex;flex-direction:column;align-items:flex-end;">
+                                    <span id="chartSpeedUp" style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#60a5fa;">0 B/s</span>
+                                    <span style="font-size:9px;color:rgba(100,116,139,0.6);">↑ <span id="chartTotalUp">0 B</span></span>
+                                </div>
+                            </div>
+                        </div>
+                        <canvas id="trafficChart" style="width:100%;height:60px;display:block;border-radius:6px;background:rgba(0,0,0,0.2);"></canvas>
+                    </div>
+
+                    <!-- Events feed -->
+                    <div style="margin-top:12px;border-top:1px solid rgba(255,255,255,0.04);padding-top:12px;">
+                        <div class="section-label" style="margin-bottom:8px;">Лента событий</div>
+                        <div id="eventLogFeed" style="display:flex;flex-direction:column;overflow-y:auto;max-height:140px;">
+                            <div style="font-size:10px;color:rgba(100,116,139,0.35);font-style:italic;padding:4px 0;">Ожидание событий...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Subscription + Nodes card -->
+                <div class="glass" style="padding:24px;display:flex;flex-direction:column;gap:20px;">
+                    <div>
+                        <div style="font-size:16px;font-weight:800;color:#f1f5f9;margin-bottom:16px;">Подписка</div>
+                        <div class="section-label" style="margin-bottom:6px;">URL провайдера (V2Ray / Clash)</div>
+                        <div style="display:flex;gap:8px;">
+                            <input type="text" id="subUrlInput" class="gsg-input" placeholder="https://...">
+                            <button id="saveSubBtn" class="btn-primary">Обновить</button>
+                        </div>
+                    </div>
+
+                    <div style="flex:1;display:flex;flex-direction:column;min-height:0;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <div class="section-label">Активный узел</div>
+                                <span id="nodesOnlineCount" style="font-size:10px;font-weight:700;color:#34d399;"></span>
+                            </div>
+                            <button class="btn-ghost" onclick="GatewayApp.actions.fetchNodes()">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;margin-right:4px;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                                Пинг
+                            </button>
+                        </div>
+                        <div id="nodesDashboard" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Devices tab -->
+            <div id="tab-devices" class="tab-content active reveal reveal-2">
+                <div class="glass" style="overflow:hidden;">
+                    <div style="padding:18px 20px;border-bottom:1px solid var(--card-border);display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">
+                        <div>
+                            <div style="font-size:15px;font-weight:800;color:#f1f5f9;">Устройства в сети</div>
+                            <div style="font-size:11px;color:var(--muted);margin-top:2px;">Активные клиенты локальной сети</div>
+                        </div>
+                        <div id="devicesCounter" style="display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);flex-shrink:0;">
+                            <div class="pulse-dot green"></div>
+                            <span style="font-size:11px;font-weight:700;color:#93c5fd;" id="devicesCount">0</span>
+                        </div>
+                    </div>
+                    <!-- Desktop table header -->
+                    <div style="display:grid;grid-template-columns:1fr 120px 96px 210px 140px 230px;gap:16px;padding:10px 20px;border-bottom:1px solid rgba(255,255,255,0.04);">
+                        <div class="section-label sort-hdr" data-sort="hostname" onclick="GatewayApp.ui.setSort('hostname')" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:4px;">Клиент <span id="sort-ind-hostname"></span></div>
+                        <div class="section-label">Активность</div>
+                        <div class="section-label sort-hdr" data-sort="traffic" onclick="GatewayApp.ui.setSort('traffic')" style="cursor:pointer;user-select:none;text-align:right;display:flex;align-items:center;justify-content:flex-end;gap:4px;"><span id="sort-ind-traffic"></span>Трафик</div>
+                        <div class="section-label">Приложения</div>
+                        <div class="section-label sort-hdr" data-sort="ip" onclick="GatewayApp.ui.setSort('ip')" id="devColNet" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:4px;">IP/MAC Адреса <span id="sort-ind-ip"></span></div>
+                        <div class="section-label sort-hdr" data-sort="mode" onclick="GatewayApp.ui.setSort('mode')" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:4px;">Режим <span id="sort-ind-mode"></span></div>
+                    </div>
+                    <div id="devicesTableBody"></div>
+                </div>
+            </div>
+
+            <!-- Routing tab -->
+            <div id="tab-routing" class="tab-content expert-item reveal reveal-2">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+                    <div class="glass" style="padding:24px;">
+                        <div style="font-size:15px;font-weight:800;color:#f1f5f9;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            Базы Rule-sets
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:8px;">
+                            <label style="display:flex;align-items:flex-start;gap:12px;padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+                                <input type="checkbox" checked class="gsg-check" style="margin-top:1px;">
+                                <div>
+                                    <div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:2px;">Обход блокировок РКН</div>
+                                    <div style="font-size:11px;color:var(--muted);">Автообновляемый список AntiFilter</div>
+                                </div>
+                            </label>
+                            <label style="display:flex;align-items:flex-start;gap:12px;padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+                                <input type="checkbox" checked class="gsg-check" style="margin-top:1px;">
+                                <div>
+                                    <div style="font-size:13px;font-weight:700;color:#f1f5f9;margin-bottom:2px;">Прямой доступ к .RU</div>
+                                    <div style="font-size:11px;color:var(--muted);">Маршрутизация мимо прокси</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="glass" style="padding:24px;">
+                        <div style="font-size:15px;font-weight:800;color:#f1f5f9;margin-bottom:16px;">Пользовательские правила</div>
+                        <div style="display:flex;flex-direction:column;gap:14px;">
+                            <div>
+                                <div class="section-label" style="margin-bottom:6px;color:#34d399;">→ Напрямую (Bypass)</div>
+                                <textarea rows="3" id="rulesDirectInput" class="gsg-textarea" placeholder="domain:example.ru, ip:192.168.1.1..."></textarea>
+                            </div>
+                            <div>
+                                <div class="section-label" style="margin-bottom:6px;color:var(--blue);">🔒 Прокси (Proxy)</div>
+                                <textarea rows="3" id="rulesProxyInput" class="gsg-textarea" placeholder="domain:netflix.com..."></textarea>
+                            </div>
+                        </div>
+                        <div style="margin-top:16px;display:flex;justify-content:flex-end;">
+                            <button class="btn-primary" id="saveRulesBtn">Сохранить правила</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DHCP tab -->
+            <div id="tab-dhcp" class="tab-content expert-item reveal reveal-2">
+                <div class="glass" style="padding:24px;">
+                    <div style="font-size:15px;font-weight:800;color:#f1f5f9;margin-bottom:20px;display:flex;align-items:center;gap:8px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+                        Настройки DHCP (dnsmasq)
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
+                        <div>
+                            <div class="section-label" style="margin-bottom:6px;">Шлюз</div>
+                            <input type="text" id="dhcpGateway" class="gsg-input" style="font-family:'JetBrains Mono',monospace;font-size:12px;">
+                        </div>
+                        <div>
+                            <div class="section-label" style="margin-bottom:6px;">Начальный IP</div>
+                            <input type="text" id="dhcpStart" class="gsg-input" style="font-family:'JetBrains Mono',monospace;font-size:12px;">
+                        </div>
+                        <div>
+                            <div class="section-label" style="margin-bottom:6px;">Конечный IP</div>
+                            <input type="text" id="dhcpEnd" class="gsg-input" style="font-family:'JetBrains Mono',monospace;font-size:12px;">
+                        </div>
+                        <div>
+                            <div class="section-label" style="margin-bottom:6px;">DNS</div>
+                            <input type="text" id="dhcpDns" class="gsg-input" style="font-family:'JetBrains Mono',monospace;font-size:12px;">
+                        </div>
+                    </div>
+                    <div style="margin-top:20px;display:flex;justify-content:flex-end;">
+                        <button class="btn-primary" id="saveDhcpBtn">Сохранить</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Proxy/Logs tab -->
+            <div id="tab-proxy" class="tab-content expert-item reveal reveal-2">
+                <div class="glass" style="padding:24px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                        <div style="font-size:15px;font-weight:800;color:#f1f5f9;display:flex;align-items:center;gap:8px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                            Журнал ядра (sing-box)
+                        </div>
+                        <div style="display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);">
+                            <div class="pulse-dot green"></div>
+                            <span style="font-size:11px;font-weight:700;color:#34d399;">Live</span>
+                        </div>
+                    </div>
+                    <div id="systemLogsBox" class="logs-scroll" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(100,116,139,0.8);background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:16px;height:380px;overflow-y:auto;white-space:pre;line-height:1.7;">
+                        <span style="color:var(--emerald);">[INFO]</span> Ожидание инициализации логов...
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<script>
+    // ─── Mobile init ───
+    const mobileHeader = document.getElementById('mobileHeader');
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('mobileBackdrop');
+    const topGrid = document.getElementById('topGrid');
+
+    function checkMobile() {
+        if (window.innerWidth < 768) {
+            mobileHeader.style.display = 'flex';
+            topGrid.style.gridTemplateColumns = '1fr';
+        } else {
+            mobileHeader.style.display = 'none';
+            sidebar.classList.remove('open');
+            backdrop.style.display = 'none';
+            topGrid.style.gridTemplateColumns = '1fr 1fr';
+        }
+    }
+    window.addEventListener('resize', checkMobile);
+    checkMobile();
+
+    const toggleMenu = () => {
+        sidebar.classList.toggle('open');
+        backdrop.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
+    };
+    document.getElementById('mobileMenuBtn')?.addEventListener('click', toggleMenu);
+    backdrop.addEventListener('click', toggleMenu);
+
+    // ─── App ───
+    const GatewayApp = (() => {
+        const APP_ICONS = {
+            telegram: `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>`,
+            tiktok:   `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>`,
+            youtube:  `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>`,
+            gemini:   `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 1.5C12 1.5 8.504 8.504 1.5 12c7.004 3.496 10.5 10.5 10.5 10.5S15.496 15.496 22.5 12C15.496 8.504 12 1.5 12 1.5z"/></svg>`,
+            claude:   `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 3L3.5 19.5h17L12 3zm0 4.5l5.5 10.5h-11L12 7.5z"/></svg>`,
+        };
+        const APPS = [
+            { id: 'telegram', title: 'Telegram', color: '#229ED9', us: false },
+            { id: 'tiktok',   title: 'TikTok',  color: '#ee1d52', us: false },
+            { id: 'youtube',  title: 'YouTube',  color: '#ff0000', us: false },
+            { id: 'gemini',   title: 'Gemini (только US)',  color: '#8ab4f8', us: true },
+            { id: 'claude',   title: 'Claude (только US)',  color: '#d97706', us: true },
+        ];
+
+        const DEVICE_ICONS = {
+            phone:   `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18" stroke-width="3"/></svg>`,
+            apple:   `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>`,
+            laptop:  `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="2" y1="20" x2="22" y2="20"/></svg>`,
+            tv:      `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="13" rx="2"/><polyline points="7 7 12 2 17 7"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>`,
+            router:  `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1.5" fill="currentColor" stroke="none"/></svg>`,
+            speaker: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><circle cx="12" cy="14" r="4"/><line x1="12" y1="6" x2="12.01" y2="6" stroke-width="3"/></svg>`,
+            gaming:  `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><circle cx="15" cy="13" r="1" fill="currentColor" stroke="none"/><circle cx="17" cy="11" r="1" fill="currentColor" stroke="none"/><path d="M17 12a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5v-1a5 5 0 0 1 5-5h3a5 5 0 0 1 5 5v1z"/></svg>`,
+            printer: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>`,
+            watch:   `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="6"/><polyline points="12 9 12 12 13.5 13.5"/><path d="M16.51 17.35l-.35 3.83a2 2 0 0 1-2 1.82H9.83a2 2 0 0 1-2-1.82l-.35-3.83m.01-10.7l.35-3.83A2 2 0 0 1 9.83 1h4.35a2 2 0 0 1 2 1.82l.35 3.83"/></svg>`,
+            server:  `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6" stroke-width="3"/><line x1="6" y1="18" x2="6.01" y2="18" stroke-width="3"/></svg>`,
+            iot:     `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>`,
+            unknown: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="3"/><path d="M9 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17" stroke-width="3"/></svg>`,
+        };
+
+        const ICON_STYLE = {
+            phone:   { bg:'rgba(59,130,246,0.1)',   border:'rgba(59,130,246,0.25)',  color:'#60a5fa' },
+            apple:   { bg:'rgba(200,200,210,0.1)',   border:'rgba(200,200,210,0.25)', color:'#c8c8d2' },
+            laptop:  { bg:'rgba(99,102,241,0.1)',    border:'rgba(99,102,241,0.25)',  color:'#818cf8' },
+            tv:      { bg:'rgba(168,85,247,0.1)',    border:'rgba(168,85,247,0.25)',  color:'#c084fc' },
+            router:  { bg:'rgba(16,185,129,0.1)',    border:'rgba(16,185,129,0.25)',  color:'#34d399' },
+            speaker: { bg:'rgba(245,158,11,0.1)',    border:'rgba(245,158,11,0.25)',  color:'#fbbf24' },
+            gaming:  { bg:'rgba(239,68,68,0.1)',     border:'rgba(239,68,68,0.25)',   color:'#f87171' },
+            printer: { bg:'rgba(107,114,128,0.1)',   border:'rgba(107,114,128,0.25)', color:'#9ca3af' },
+            watch:   { bg:'rgba(201,168,76,0.1)',    border:'rgba(201,168,76,0.25)',  color:'#c9a84c' },
+            server:  { bg:'rgba(6,182,212,0.1)',     border:'rgba(6,182,212,0.25)',   color:'#22d3ee' },
+            iot:     { bg:'rgba(16,185,129,0.08)',   border:'rgba(16,185,129,0.2)',   color:'#6ee7b7' },
+            unknown: { bg:'rgba(100,116,139,0.08)',  border:'rgba(100,116,139,0.2)',  color:'#64748b' },
+        };
+
+        const vendorToType = (vendor, hostname) => {
+            const v = (vendor || '').toLowerCase();
+            const h = (hostname || '').toLowerCase();
+            if (/iphone|android/.test(h)) return 'phone';
+            if (/macbook|imac/.test(h)) return 'laptop';
+            if (/apple.?tv|appletv|firetv|fire.?tv|roku|chromecast|shield/.test(h)) return 'tv';
+            if (/watch/.test(h) && !/network|smart/.test(h)) return 'watch';
+            if (/ipad/.test(h)) return 'apple';
+            if (/apple/.test(v)) {
+                if (/tv/.test(h)) return 'tv';
+                if (/mac|book/.test(h)) return 'laptop';
+                if (/watch/.test(h)) return 'watch';
+                return 'apple';
+            }
+            if (/samsung|huawei|xiaomi|oppo|vivo|realme|oneplus|motorola|zte|qualcomm|google llc|fairphone|wiko|meizu/.test(v)) return 'phone';
+            if (/intel corp|dell|hp inc|hewlett|lenovo|asus tek|acer|msi|gigabyte|razer|microsoft|toshiba|panasonic/.test(v)) return 'laptop';
+            if (/lg electronics|sony corp|philips|tcl|hisense|sharp|vizio|amazon.*fire|amazon tech/.test(v)) return 'tv';
+            if (/tp-link|ubiquiti|mikrotik|netgear|linksys|d-link|zyxel|cisco|keenetic|eero|gl\.inet|sagemcom|asustek.*router/.test(v)) return 'router';
+            if (/amazon|sonos|bose|jbl|harman|anker/.test(v)) return 'speaker';
+            if (/sony interactive|nintendo|microsoft.*xbox|valve/.test(v)) return 'gaming';
+            if (/canon|epson|brother|xerox|ricoh/.test(v)) return 'printer';
+            if (/apple watch/.test(v) || /fossil|garmin|fitbit/.test(v)) return 'watch';
+            if (/super micro|xen|vmware|proxmox|red hat/.test(v)) return 'server';
+            if (/espressif|raspberry|texas instruments|tuya|shenzhen|realtek semi|nordic semi/.test(v)) return 'iot';
+            if (h.includes('tv') || h.includes('smart')) return 'tv';
+            if (h.includes('router') || h.includes('ap-') || h.includes('mikrotik')) return 'router';
+            if (h.includes('printer')) return 'printer';
+            return 'unknown';
+        };
+
+        const getBrandLogoHtml = (vendor, color) => {
+            if (!vendor) return null;
+            const v = vendor.toLowerCase();
+            let slug = null;
+            if (v.includes('apple')) slug = 'apple';
+            else if (v.includes('samsung')) slug = 'samsung';
+            else if (v.includes('huawei')) slug = 'huawei';
+            else if (v.includes('xiaomi')) slug = 'mi';
+            else if (v.startsWith('lg')) slug = 'lg';
+            else if (v.includes('sony') && !v.includes('interactive')) slug = 'sony';
+            else if (v.includes('tp-link') || v.includes('tplink')) slug = 'tp-link';
+            else if (v.includes('ubiquiti')) slug = 'ubiquiti';
+            else if (v.includes('asus')) slug = 'asus';
+            else if (v.includes('intel')) slug = 'intel';
+            else if (v.includes('keenetic')) slug = 'keenetic';
+            else if (v.includes('amazon')) slug = 'amazon';
+            else if (v.includes('microsoft')) slug = 'microsoft';
+            else if (v.includes('google')) slug = 'google';
+            else if (v.includes('raspberry')) slug = 'raspberrypi';
+            else if (v.includes('nintendo')) slug = 'nintendo';
+            else if (v.includes('sony interactive')) slug = 'playstation';
+            else if (v.includes('oppo')) slug = 'oppo';
+            else if (v.includes('oneplus')) slug = 'oneplus';
+            else if (v.includes('cisco')) slug = 'cisco';
+            else if (v.includes('realtek')) slug = 'realtek';
+            else if (v.includes('mikrotik')) slug = 'mikrotik';
+            else if (v.includes('lenovo')) slug = 'lenovo';
+            else if (v.includes('dell')) slug = 'dell';
+            else if (v.includes('hewlett') || v.includes('hp inc')) slug = 'hp';
+            else if (v.includes('motorola')) slug = 'motorola';
+            else if (v.includes('philips')) slug = 'philips';
+            else if (v.includes('sonos')) slug = 'sonos';
+            else if (v.includes('netgear')) slug = 'netgear';
+            else if (v.includes('espressif')) slug = 'espressif';
+            if (!slug) return null;
+            const hex = color.replace('#', '');
+            return `<img src="https://cdn.simpleicons.org/${slug}/${hex}" width="20" height="20" style="display:block;object-fit:contain;flex-shrink:0;" loading="lazy" onerror="this.style.display='none';const fb=this.nextElementSibling;if(fb)fb.style.display='flex';" />`;
+        };
+
+        const state = {
+            isOnline: true,
+            expertMode: false,
+            nodes: [],
+            devices: [],
+            traffic: {},
+            globalNode: 'auto',
+            deviceApps: {},
+            networkData: null,
+            _devicesHash: null,
+            trafficHistory: [],
+            sessionStats: { totalDown: 0, totalUp: 0, peakDown: 0, peakUp: 0 },
+            events: [],
+            _prevNodeStatuses: {},
+            _prevDeviceIPs: [],
+            vendorCache: {},
+            deviceTrafficHistory: {},
+            sortBy: 'hostname',
+            sortDir: 1
+        };
+
+        const utils = {
+            debounce: (func, wait = 400) => {
+                let timeout;
+                return (...args) => {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func(...args), wait);
+                };
+            },
+            apiCall: async (endpoint, options = {}) => {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 6000);
+                try {
+                    const response = await fetch(`/api${endpoint}`, { ...options, signal: controller.signal, headers: { 'Content-Type': 'application/json', ...(options.headers || {}) } });
+                    clearTimeout(timeoutId);
+                    if (!response.ok) throw new Error(`HTTP: ${response.status}`);
+                    if (!state.isOnline) ui.setConnectionStatus(true);
+                    return await response.json();
+                } catch (error) {
+                    clearTimeout(timeoutId);
+                    ui.setConnectionStatus(false);
+                    return null;
+                }
+            },
+            getFlagEmoji: (text) => {
+                if (!text || text === '-' || text === 'error') return '❌';
+                const code = text.substring(0,2).toUpperCase();
+                if (!/^[A-Z]{2}$/.test(code)) return '🌐';
+                return String.fromCodePoint(...code.split('').map(c => 127397 + c.charCodeAt()));
+            },
+            getPingClass: (ping) => {
+                if (ping === 'error' || ping === 'ERR' || ping > 500) return 'ping-bad';
+                if (ping > 150) return 'ping-med';
+                return 'ping-good';
+            },
+            formatBytes: (bytes, decimals = 1) => {
+                if (!+bytes) return '0 B';
+                const k = 1024, dm = decimals < 0 ? 0 : decimals;
+                const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+            }
+        };
+
+        const ui = {
+            setConnectionStatus: (isOnline) => {
+                if (state.isOnline === isOnline) return;
+                state.isOnline = isOnline;
+                const overlay = document.getElementById('conn-overlay');
+                if (isOnline) {
+                    overlay.classList.remove('show');
+                    document.getElementById('main-scroll').style.pointerEvents = '';
+                } else {
+                    overlay.classList.add('show');
+                    document.getElementById('main-scroll').style.pointerEvents = 'none';
+                }
+            },
+
+            switchTab: (tabId, navEl) => {
+                // Update nav
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                if (navEl) navEl.classList.add('active');
+
+                // Switch tabs
+                document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+                const tab = document.getElementById(tabId);
+                if (tab) tab.classList.add('active');
+
+                // Close mobile sidebar
+                if (window.innerWidth < 768) {
+                    sidebar.classList.remove('open');
+                    backdrop.style.display = 'none';
+                }
+            },
+
+            setMode: (expert) => {
+                state.expertMode = expert;
+                document.getElementById('modeSimpleBtn').classList.toggle('active', !expert);
+                document.getElementById('modeExpertBtn').classList.toggle('active', expert);
+
+                document.querySelectorAll('.expert-item').forEach(el => {
+                    el.style.display = expert ? (el.classList.contains('tab-content') ? '' : 'flex') : 'none';
+                    if (el.classList.contains('tab-content')) {
+                        el.classList.remove('active');
+                    }
+                });
+
+                if (!expert) {
+                    ui.switchTab('tab-devices', document.getElementById('nav-devices'));
+                } else {
+                    // Show nav items
+                    document.querySelectorAll('.expert-item.nav-item').forEach(el => el.style.display = 'flex');
+                }
+
+                ui.renderDevices(state.devices);
+
+                // Handle device table net column header
+                const devColNet = document.getElementById('devColNet');
+                if (devColNet) devColNet.style.display = expert ? 'block' : 'none';
+            },
+
+            renderDevices: (devices) => {
+                const newHash = JSON.stringify(devices) + JSON.stringify(state.nodes) + JSON.stringify(state.deviceApps);
+                if (state._devicesHash === newHash) return;
+                state._devicesHash = newHash;
+
+                const tbody = document.getElementById('devicesTableBody');
+                if (!tbody || !devices) return;
+                const countEl = document.getElementById('devicesCount');
+                if (countEl) countEl.textContent = devices.length + ' онлайн';
+
+                const optionsHtml = `<option value="auto">⚡ Автоматически</option>` +
+                    state.nodes.map(n => `<option value="${n.tag}">🌐 ${n.tag}</option>`).join('');
+
+                const sortedDevices = [...devices].sort((a, b) => {
+                    let av, bv;
+                    if (state.sortBy === 'ip') {
+                        av = a.ip.split('.').map(n => n.padStart(3,'0')).join('');
+                        bv = b.ip.split('.').map(n => n.padStart(3,'0')).join('');
+                    } else if (state.sortBy === 'traffic') {
+                        av = (state.traffic[a.ip]?.speed_down || 0) + (state.traffic[a.ip]?.speed_up || 0);
+                        bv = (state.traffic[b.ip]?.speed_down || 0) + (state.traffic[b.ip]?.speed_up || 0);
+                    } else if (state.sortBy === 'mode') {
+                        av = a.mode; bv = b.mode;
+                    } else {
+                        av = (a.hostname || '').toLowerCase(); bv = (b.hostname || '').toLowerCase();
+                    }
+                    return av < bv ? -state.sortDir : av > bv ? state.sortDir : 0;
+                });
+                ui.updateSortIndicators();
+
+                tbody.innerHTML = sortedDevices.map(dev => {
+                    const isBlocked = dev.mode === 'block';
+                    const isProtected = dev.mode !== 'bypass' && !isBlocked;
+                    const statusColor = isBlocked ? '#ef4444' : (isProtected ? '#10b981' : '#f59e0b');
+
+                    const cachedVendor = state.vendorCache[dev.mac];
+                    const deviceType = cachedVendor !== undefined
+                        ? vendorToType(cachedVendor, dev.hostname)
+                        : (dev.hostname.toLowerCase().includes('tv') ? 'tv' : 'unknown');
+                    const ist = ICON_STYLE[deviceType] || ICON_STYLE.unknown;
+                    const brandLogoHtml = getBrandLogoHtml(cachedVendor, ist.color);
+                    const brandBadge = '';
+                    const displayName = (dev.hostname === 'Устройство' || dev.hostname === 'Unknown' || dev.hostname === 'устройство') && cachedVendor
+                        ? cachedVendor : dev.hostname;
+                    const vendorLabel = (cachedVendor && displayName !== cachedVendor)
+                        ? `<div style="font-size:10px;color:rgba(100,116,139,0.5);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${cachedVendor}">${cachedVendor}</div>`
+                        : '';
+
+                    const TYPE_LABELS = {phone:'Смартфон',laptop:'Ноутбук',tv:'Телевизор',router:'Роутер',speaker:'Колонка',gaming:'Игровая',iot:'IoT',tablet:'Планшет',unknown:''};
+                    const typeLabel = (cachedVendor !== undefined && deviceType !== 'unknown')
+                        ? `<span style="display:inline-flex;align-items:center;gap:3px;margin-top:4px;padding:1px 6px;border-radius:4px;background:${ist.bg};border:1px solid ${ist.border};font-size:9px;font-weight:700;color:${ist.color};letter-spacing:0.04em;text-transform:uppercase;">${TYPE_LABELS[deviceType]||deviceType}</span>`
+                        : '';
+
+                    const modeColors = {smart:'#3b82f6',global:'#a855f7',bypass:'#f59e0b',block:'#ef4444'};
+                    const modeLabels = {smart:'Smart',global:'Global',bypass:'Bypass',block:'Block'};
+                    const modeBadge = `<span style="display:inline-flex;align-items:center;padding:1px 6px;border-radius:4px;background:${modeColors[dev.mode]||'#64748b'}18;border:1px solid ${modeColors[dev.mode]||'#64748b'}33;font-size:9px;font-weight:700;color:${modeColors[dev.mode]||'#64748b'};margin-top:4px;letter-spacing:0.04em;text-transform:uppercase;">${modeLabels[dev.mode]||dev.mode}</span>`;
+
+                    const devApps = state.deviceApps[dev.ip] || {};
+                    const hasUSApp = ['gemini', 'claude'].some(a => devApps[a]);
+                    const appsHtml = `<div style="display:flex;flex-direction:column;gap:4px;">
+                        <div style="display:flex;gap:4px;align-items:center;">
+                        ${APPS.map(app => {
+                            const active = !!devApps[app.id];
+                            const chipStyle = active ? `--chip-bg:${app.color}22;--chip-border:${app.color}55;--chip-color:${app.color};` : '';
+                            return `<button class="app-chip${active ? ' active' : ''}" data-ip="${dev.ip}" data-app="${app.id}" title="${app.title}" style="${chipStyle}">${APP_ICONS[app.id]}${app.us ? '<span class="us-dot"></span>' : ''}</button>`;
+                        }).join('')}
+                        </div>
+                        ${hasUSApp ? `<div style="font-size:9px;color:#60a5fa;font-weight:700;font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:3px;"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>NY узел</div>` : ''}
+                    </div>`;
+
+                    return `<div style="display:grid;grid-template-columns:1fr 120px 96px 210px 140px 230px;align-items:center;gap:16px;padding:14px 20px;border-bottom:1px solid rgba(255,255,255,0.04);transition:background 0.15s;" data-ip="${dev.ip}" class="device-row-item" onmouseover="this.style.background='rgba(255,255,255,0.025)'" onmouseout="this.style.background=''">
+                        <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+                            <div data-icon-mac="${dev.mac}" title="${cachedVendor || dev.hostname}" style="width:36px;height:36px;border-radius:10px;background:${ist.bg};border:1px solid ${ist.border};display:flex;align-items:center;justify-content:center;color:${ist.color};flex-shrink:0;position:relative;overflow:visible;">
+                                ${brandLogoHtml || ''}
+                                <span style="display:${brandLogoHtml ? 'none' : 'flex'};align-items:center;justify-content:center;">${DEVICE_ICONS[deviceType] || DEVICE_ICONS.unknown}</span>
+                                <div style="position:absolute;bottom:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:${statusColor};border:2px solid var(--bg);z-index:1;"></div>
+                            </div>
+                            <div style="min-width:0;">
+                                <div style="font-size:13px;font-weight:700;color:${isBlocked ? '#f87171' : '#f1f5f9'};${isBlocked ? 'text-decoration:line-through;' : ''}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${displayName}</div>
+                                <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:1px;">${dev.ip}</div>
+                                ${vendorLabel}
+                                <div style="display:flex;flex-wrap:wrap;gap:4px;">${typeLabel}${modeBadge}</div>
+                            </div>
+                        </div>
+
+                        <div class="dev-spark" data-ip="${dev.ip}" style="display:flex;align-items:flex-end;gap:1px;height:26px;padding:2px 0;overflow:hidden;">
+                            ${ui.makeSparkBars(state.deviceTrafficHistory[dev.ip] || [])}
+                        </div>
+
+                        <div style="text-align:right;">
+                            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#34d399;"><span class="traffic-down" data-ip="${dev.ip}">0 B/s</span> ↓</div>
+                            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#60a5fa;margin-top:1px;"><span class="traffic-up" data-ip="${dev.ip}">0 B/s</span> ↑</div>
+                            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:1px;" class="traffic-total" data-ip="${dev.ip}">0 B</div>
+                        </div>
+
+                        ${appsHtml}
+
+                        <div>
+                            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);">${dev.ip}</div>
+                            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(100,116,139,0.6);margin-top:2px;">${dev.mac}</div>
+                        </div>
+
+                        <div>
+                            <div style="display:flex;flex-direction:column;gap:6px;">
+                                <select class="gsg-select device-mode-select" data-ip="${dev.ip}" style="width:100%;">
+                                    <option value="global" ${dev.mode==='global'?'selected':''}>🌐 Global</option>
+                                    <option value="smart" ${dev.mode==='smart'?'selected':''}>🧠 Smart</option>
+                                    <option value="bypass" ${dev.mode==='bypass'?'selected':''}>⚡ Bypass</option>
+                                    <option value="block" ${dev.mode==='block'?'selected':''}>🚫 Block</option>
+                                </select>
+                                <select class="gsg-select device-node-select" data-ip="${dev.ip}" style="width:100%;" ${isBlocked?'disabled':''}>
+                                    ${optionsHtml}
+                                </select>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+
+                devices.forEach(dev => {
+                    const nodeSelect = tbody.querySelector(`.device-node-select[data-ip="${dev.ip}"]`);
+                    if (nodeSelect) nodeSelect.value = dev.assigned_node || 'auto';
+                });
+
+                ui.updateTrafficDOM();
+            },
+
+            updateTrafficDOM: () => {
+                if (!state.traffic) return;
+                Object.keys(state.traffic).forEach(ip => {
+                    const data = state.traffic[ip];
+                    const downEl = document.querySelector(`.traffic-down[data-ip="${ip}"]`);
+                    const upEl = document.querySelector(`.traffic-up[data-ip="${ip}"]`);
+                    const totalEl = document.querySelector(`.traffic-total[data-ip="${ip}"]`);
+                    if (downEl) downEl.textContent = utils.formatBytes(data.speed_down) + '/s';
+                    if (upEl) upEl.textContent = utils.formatBytes(data.speed_up) + '/s';
+                    if (totalEl) totalEl.textContent = utils.formatBytes(data.total_down + data.total_up);
+                    // Update sparkbar
+                    if (!state.deviceTrafficHistory[ip]) state.deviceTrafficHistory[ip] = [];
+                    state.deviceTrafficHistory[ip].push(data.speed_down || 0);
+                    if (state.deviceTrafficHistory[ip].length > 36) state.deviceTrafficHistory[ip].shift();
+                    const sparkEl = document.querySelector(`.dev-spark[data-ip="${ip}"]`);
+                    if (sparkEl) sparkEl.innerHTML = ui.makeSparkBars(state.deviceTrafficHistory[ip]);
+                });
+            },
+
+            makeSparkBars: (history) => {
+                const bars = history.slice(-36);
+                const max = Math.max(1, ...bars);
+                return bars.map(v => {
+                    const h = Math.max(2, Math.round((v / max) * 22));
+                    const active = v > 0;
+                    return `<div style="width:3px;height:${h}px;background:${active ? '#10b981' : 'rgba(255,255,255,0.07)'};border-radius:1px;align-self:flex-end;transition:height 0.3s;"></div>`;
+                }).join('');
+            },
+
+            setSort: (col) => {
+                if (state.sortBy === col) {
+                    state.sortDir = -state.sortDir;
+                } else {
+                    state.sortBy = col;
+                    state.sortDir = col === 'traffic' ? -1 : 1;
+                }
+                state._devicesHash = null;
+                ui.renderDevices(state.devices);
+            },
+
+            updateSortIndicators: () => {
+                ['hostname','ip','traffic','mode'].forEach(col => {
+                    const el = document.getElementById(`sort-ind-${col}`);
+                    if (!el) return;
+                    if (state.sortBy === col) {
+                        el.textContent = state.sortDir === 1 ? '↑' : '↓';
+                        el.style.color = '#3b82f6';
+                    } else {
+                        el.textContent = '↕';
+                        el.style.color = 'rgba(100,116,139,0.4)';
+                    }
+                });
+            },
+
+            updateSidebarNetStats: () => {
+                const el = document.getElementById('sidebarNetStats');
+                if (!el) return;
+                const providerIp = state.networkData?.direct?.ip || '—';
+                const providerCountry = state.networkData?.direct?.country || '';
+                const tunnelIp = state.networkData?.tunnel?.ip || '—';
+                const tunnelOk = state.networkData?.tunnel?.status === 'ok';
+                el.innerHTML = `
+                    <div class="metric-pill">
+                        <span style="color:var(--muted);">Провайдер</span>
+                        <span style="font-weight:700;color:#f1f5f9;font-family:'JetBrains Mono',monospace;font-size:11px;">${providerIp}${providerCountry?' <span style="font-size:9px;color:var(--muted);">'+providerCountry+'</span>':''}</span>
+                    </div>
+                    <div class="metric-pill">
+                        <span style="color:var(--muted);">Туннель</span>
+                        <span style="font-weight:700;font-family:'JetBrains Mono',monospace;font-size:11px;color:${tunnelOk?'#34d399':'#f87171'};">${tunnelIp}</span>
+                    </div>
+                    <div class="metric-pill" style="flex-direction:column;align-items:flex-start;gap:2px;padding:7px 10px;">
+                        <span style="color:var(--muted);font-size:10px;">Сессия</span>
+                        <div style="display:flex;gap:10px;">
+                            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#34d399;">↓ ${utils.formatBytes(state.sessionStats.totalDown)}</span>
+                            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#60a5fa;">↑ ${utils.formatBytes(state.sessionStats.totalUp)}</span>
+                        </div>
+                    </div>`;
+            },
+
+            renderNodes: () => {
+                const dash = document.getElementById('nodesDashboard');
+                if (!dash || !state.nodes) return;
+                const onlineCount = state.nodes.filter(n => n.status === 'online').length;
+                const countEl = document.getElementById('nodesOnlineCount');
+                if (countEl) countEl.textContent = onlineCount ? `${onlineCount}/${state.nodes.length} онлайн` : '';
+
+                let html = `
+                    <div class="node-card ${state.globalNode === 'auto' ? 'selected' : ''}" onclick="GatewayApp.actions.setGlobalNode('auto')">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span style="font-size:18px;">⚡</span>
+                            <div>
+                                <div style="font-size:12px;font-weight:700;color:${state.globalNode==='auto'?'#93c5fd':'#f1f5f9'};">Авто</div>
+                                <div style="font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;">Балансировка</div>
+                            </div>
+                        </div>
+                    </div>`;
+
+                html += state.nodes.map(n => {
+                    const isSelected = state.globalNode === n.tag;
+                    const pingClass = utils.getPingClass(n.ping);
+                    return `
+                    <div class="node-card ${isSelected ? 'selected' : ''}" onclick="GatewayApp.actions.setGlobalNode('${n.tag}')">
+                        <div style="display:flex;align-items:center;gap:8px;overflow:hidden;">
+                            <span style="font-size:18px;flex-shrink:0;">${utils.getFlagEmoji(n.tag)}</span>
+                            <div style="overflow:hidden;">
+                                <div style="font-size:12px;font-weight:700;color:${isSelected?'#93c5fd':'#f1f5f9'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${n.tag}</div>
+                                <div style="font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;text-transform:uppercase;">${n.type}</div>
+                            </div>
+                        </div>
+                        <div style="flex-shrink:0;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;" class="${pingClass}">
+                            ${n.status === 'online' ? n.ping + 'ms' : 'ERR'}
+                        </div>
+                    </div>`;
+                }).join('');
+
+                dash.innerHTML = html;
+            },
+
+            renderNetworkStatus: (data) => {
+                if (!data) return;
+                state.networkData = data;
+                const badge = document.getElementById('globalProtectionBadge');
+                if (data.tunnel.status === 'ok') {
+                    badge.className = 'status-badge online';
+                    badge.innerHTML = '<div class="pulse-dot green"></div> Шлюз онлайн';
+                } else {
+                    badge.className = 'status-badge offline';
+                    badge.innerHTML = '<div class="pulse-dot red"></div> Туннель недоступен';
+                }
+                ui.renderRouteViz();
+                ui.updateSidebarNetStats();
+            },
+
+            renderRouteViz: () => {
+                const box = document.getElementById('routeViz');
+                if (!box) return;
+                const data = state.networkData;
+
+                const directFlag = data ? utils.getFlagEmoji(data.direct.country) : '⏳';
+                const directIp   = data ? (data.direct.ip || '—') : '...';
+                const tunnelOk   = data && data.tunnel.status === 'ok';
+
+                const autoNode = state.globalNode !== 'auto'
+                    ? state.nodes.find(n => n.tag === state.globalNode)
+                    : state.nodes.find(n => n.status === 'online');
+                const nyNode = state.nodes.find(n => /ny|new[\s-]?york/i.test(n.tag));
+
+                const autoFlag  = data ? utils.getFlagEmoji(data.tunnel.country) : (autoNode ? utils.getFlagEmoji(autoNode.tag) : '🌍');
+                const autoName  = autoNode ? autoNode.tag : (state.globalNode !== 'auto' ? state.globalNode : 'Авто');
+                const autoIp    = data ? (data.tunnel.ip || '—') : '...';
+                const autoPingStr = autoNode ? (autoNode.status === 'online' ? autoNode.ping + 'ms' : 'ERR') : (tunnelOk ? (data.youtube.ping + 'ms') : '...');
+                const autoPingCls = autoNode ? utils.getPingClass(autoNode.ping) : '';
+                const autoLineOk  = tunnelOk;
+
+                const nyFlag    = nyNode ? utils.getFlagEmoji(nyNode.tag) : '🇺🇸';
+                const nyName    = nyNode ? nyNode.tag : 'NY (нет)';
+                const nyPingStr = nyNode ? (nyNode.status === 'online' ? nyNode.ping + 'ms' : 'ERR') : '...';
+                const nyPingCls = nyNode ? utils.getPingClass(nyNode.ping) : '';
+                const nyLineOk  = nyNode && nyNode.status === 'online';
+
+                const pkt2 = '<div class="packet"></div>'.repeat(2);
+                const pkt3 = '<div class="packet"></div>'.repeat(3);
+                const appBadge = (color, icon, title) =>
+                    `<div title="${title}" style="width:36px;height:36px;border-radius:9px;background:${color}1a;border:1px solid ${color}40;display:flex;align-items:center;justify-content:center;color:${color};flex-shrink:0;transition:transform 0.15s;" onmouseover="this.style.transform='scale(1.12)'" onmouseout="this.style.transform=''">${icon}</div>`;
+
+                const nodePill = (flag, name, ping, pingCls, bg, border) =>
+                    `<div style="display:flex;align-items:center;gap:6px;background:${bg};border:1px solid ${border};border-radius:9px;padding:6px 10px;flex:1;min-width:0;max-width:140px;">
+                        <span style="font-size:16px;flex-shrink:0;">${flag}</span>
+                        <div style="min-width:0;overflow:hidden;">
+                            <div style="font-size:10px;font-weight:700;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div>
+                            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;" class="${pingCls}">${ping}</div>
+                        </div>
+                    </div>`;
+
+                box.innerHTML = `
+                <!-- Route map: 8-column grid — cols 2 and 7 are both 1fr (equal line lengths) -->
+                <div style="display:grid;grid-template-columns:70px 1fr 46px 14px 1fr minmax(110px,145px) 1fr auto;grid-template-rows:auto auto;row-gap:12px;align-items:center;margin-bottom:18px;">
+
+                    <!-- Col 1: Provider (spans both rows) -->
+                    <div style="grid-row:1/3;display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;width:70px;">
+                        <div style="font-size:26px;line-height:1;">${directFlag}</div>
+                        <div style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);">Провайдер</div>
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(100,116,139,0.45);width:70px;text-align:center;word-break:break-all;line-height:1.4;">${directIp}</div>
+                    </div>
+
+                    <!-- Col 2: Line provider→GSG (spans both rows, 1fr) -->
+                    <div style="grid-row:1/3;padding:0 8px;"><div class="route-line">${pkt3}</div></div>
+
+                    <!-- Col 3: GSG (spans both rows) -->
+                    <div style="grid-row:1/3;display:flex;flex-direction:column;align-items:center;gap:3px;">
+                        <div style="width:40px;height:40px;border-radius:11px;background:rgba(201,168,76,0.12);border:1.5px solid rgba(201,168,76,0.4);display:flex;align-items:center;justify-content:center;box-shadow:0 0 18px rgba(201,168,76,0.18);">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c9a84c" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        </div>
+                        <div style="font-size:9px;font-weight:800;color:#c9a84c;letter-spacing:0.09em;text-shadow:0 0 10px rgba(201,168,76,0.5);">GSG</div>
+                    </div>
+
+                    <!-- Col 4: Y-bar (spans both rows) -->
+                    <div style="grid-row:1/3;display:flex;flex-direction:column;align-items:center;align-self:stretch;padding:8px 0;">
+                        <div style="flex:1;width:2px;background:linear-gradient(to bottom,rgba(16,185,129,0.6) 0%,rgba(16,185,129,0.6) 50%,rgba(59,130,246,0.6) 50%,rgba(59,130,246,0.6) 100%);border-radius:1px;"></div>
+                    </div>
+
+                    <!-- Row 1: Auto branch — Col 5: short connector -->
+                    <div><div class="route-line ${autoLineOk ? 'emerald' : 'dim'}">${pkt2}</div></div>
+                    <!-- Row 1: Col 6: node pill -->
+                    ${nodePill(autoFlag, autoName, autoPingStr, autoPingCls, 'rgba(16,185,129,0.07)', 'rgba(16,185,129,0.22)')}
+                    <!-- Row 1: Col 7: line node→apps (1fr, equal to col 2) -->
+                    <div style="padding:0 10px;"><div class="route-line ${autoLineOk ? 'emerald' : 'dim'}">${pkt2}</div></div>
+                    <!-- Row 1: Col 8: app icons -->
+                    <div style="display:flex;gap:6px;align-items:center;">
+                        ${appBadge('#229ED9', APP_ICONS.telegram, 'Telegram')}
+                        ${appBadge('#ee1d52', APP_ICONS.tiktok, 'TikTok')}
+                        ${appBadge('#ff0000', APP_ICONS.youtube, 'YouTube')}
+                    </div>
+
+                    <!-- Row 2: NY branch — Col 5: short connector -->
+                    <div><div class="route-line ${nyLineOk ? 'blue' : 'dim'}">${pkt2}</div></div>
+                    <!-- Row 2: Col 6: node pill -->
+                    ${nodePill(nyFlag, nyName, nyPingStr, nyPingCls, 'rgba(59,130,246,0.07)', 'rgba(59,130,246,0.22)')}
+                    <!-- Row 2: Col 7: line node→apps (1fr) -->
+                    <div style="padding:0 10px;"><div class="route-line ${nyLineOk ? 'blue' : 'dim'}">${pkt2}</div></div>
+                    <!-- Row 2: Col 8: app icons -->
+                    <div style="display:flex;gap:6px;align-items:center;">
+                        ${appBadge('#8ab4f8', APP_ICONS.gemini, 'Gemini')}
+                        ${appBadge('#d97706', APP_ICONS.claude, 'Claude')}
+                    </div>
+
+                </div>
+
+                <!-- РКН статус -->
+                <div style="border-top:1px solid var(--card-border);padding-top:10px;display:flex;align-items:center;justify-content:space-between;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <div style="width:6px;height:6px;border-radius:50%;background:#ef4444;animation:skelPulse 1.5s infinite;flex-shrink:0;"></div>
+                        <span style="font-size:11px;font-weight:600;color:var(--muted);">DPI провайдера — прямой трафик</span>
+                    </div>
+                    <span style="font-size:10px;font-weight:700;color:#f87171;font-family:'JetBrains Mono',monospace;">Drop</span>
+                </div>`;
+            },
+
+            _unusedServiceRoutes: () => {
+                const box = document.getElementById('serviceRoutingBox');
+                if (!box) return;
+
+                const getBestNode = () => {
+                    if (state.globalNode !== 'auto') return state.nodes.find(n => n.tag === state.globalNode);
+                    return state.nodes.find(n => n.status === 'online');
+                };
+                const autoNode = getBestNode();
+                const nyNode = state.nodes.find(n => /ny|new[\s-]?york/i.test(n.tag));
+
+                const fmtPing = (n) => {
+                    if (!n) return '<span style="color:var(--muted);">...</span>';
+                    if (n.status !== 'online') return '<span style="color:#ef4444;">ERR</span>';
+                    const cls = utils.getPingClass(n.ping);
+                    return `<span class="${cls}" style="font-family:\'JetBrains Mono\',monospace;font-size:11px;font-weight:700;">${n.ping}ms</span>`;
+                };
+
+                const rowStyle = (bg, border) => `display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:9px;background:${bg};border:1px solid ${border};`;
+
+                const makeRow = (flag, name, subtitle, subtitleColor, appIcons, pingHtml, pulse) => `
+                    <div style="${rowStyle(pulse, subtitleColor.replace(')', ',0.18)').replace('rgb', 'rgba'))}">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span style="font-size:18px;flex-shrink:0;">${flag}</span>
+                            <div>
+                                <div style="font-size:11px;font-weight:700;color:#f1f5f9;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</div>
+                                <div style="font-size:9px;color:${subtitleColor};text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">${subtitle}</div>
+                            </div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <div style="display:flex;gap:3px;opacity:0.55;">${appIcons}</div>
+                            ${pingHtml}
+                        </div>
+                    </div>`;
+
+                const autoFlag = autoNode ? utils.getFlagEmoji(autoNode.tag) : '🌐';
+                const autoName = autoNode ? autoNode.tag : (state.globalNode === 'auto' ? 'Авто' : state.globalNode);
+                const nyFlag = nyNode ? utils.getFlagEmoji(nyNode.tag) : '🇺🇸';
+                const nyName = nyNode ? nyNode.tag : 'NY (нет узла)';
+
+                const autoApps = APP_ICONS.telegram + APP_ICONS.tiktok + APP_ICONS.youtube;
+                const usApps = APP_ICONS.gemini + APP_ICONS.claude;
+
+                box.innerHTML =
+                    makeRow(autoFlag, autoName, 'Авто • Быстрейший', '#10b981',
+                        autoApps, fmtPing(autoNode), 'rgba(16,185,129,0.07)') +
+                    makeRow(nyFlag, nyName, 'US • Гео-обход', '#3b82f6',
+                        usApps, fmtPing(nyNode), 'rgba(59,130,246,0.07)') +
+                    `<div style="${rowStyle('rgba(255,255,255,0.03)', 'rgba(255,255,255,0.07)')}">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span style="font-size:18px;">🔒</span>
+                            <div>
+                                <div style="font-size:11px;font-weight:700;color:#f87171;">Прямой (провайдер)</div>
+                                <div style="font-size:9px;color:#ef4444;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">РКН • DPI блок</div>
+                            </div>
+                        </div>
+                        <span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;font-weight:700;color:#f87171;">Drop</span>
+                    </div>`;
+            },
+
+            drawTrafficChart: () => {
+                const canvas = document.getElementById('trafficChart');
+                if (!canvas) return;
+                const dpr = window.devicePixelRatio || 1;
+                const W = canvas.offsetWidth * dpr;
+                const H = canvas.offsetHeight * dpr;
+                if (canvas.width !== W) canvas.width = W;
+                if (canvas.height !== H) canvas.height = H;
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, W, H);
+                const hist = state.trafficHistory;
+                if (hist.length < 2) return;
+                const maxVal = Math.max(1024, ...hist.map(p => Math.max(p.down, p.up)));
+                const drawLine = (key, stroke, fill) => {
+                    const pts = hist.map((p, i) => ({
+                        x: (i / (hist.length - 1)) * W,
+                        y: H - (p[key] / maxVal) * H * 0.88 - H * 0.06
+                    }));
+                    ctx.beginPath();
+                    ctx.moveTo(pts[0].x, H);
+                    pts.forEach(p => ctx.lineTo(p.x, p.y));
+                    ctx.lineTo(pts[pts.length-1].x, H);
+                    ctx.closePath();
+                    ctx.fillStyle = fill;
+                    ctx.fill();
+                    ctx.beginPath();
+                    pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+                    ctx.strokeStyle = stroke;
+                    ctx.lineWidth = 1.5 * dpr;
+                    ctx.lineJoin = 'round';
+                    ctx.stroke();
+                };
+                drawLine('down', '#10b981', 'rgba(16,185,129,0.15)');
+                drawLine('up', '#3b82f6', 'rgba(59,130,246,0.1)');
+                const last = hist[hist.length - 1] || {down:0, up:0};
+                const dEl = document.getElementById('chartSpeedDown');
+                const uEl = document.getElementById('chartSpeedUp');
+                const tdEl = document.getElementById('chartTotalDown');
+                const tuEl = document.getElementById('chartTotalUp');
+                if (dEl) dEl.textContent = utils.formatBytes(last.down) + '/s';
+                if (uEl) uEl.textContent = utils.formatBytes(last.up) + '/s';
+                if (tdEl) tdEl.textContent = utils.formatBytes(state.sessionStats.totalDown);
+                if (tuEl) tuEl.textContent = utils.formatBytes(state.sessionStats.totalUp);
+            },
+
+            addEvent: (icon, text, color) => {
+                state.events.unshift({ time: new Date(), icon, text, color: color || 'var(--muted)' });
+                if (state.events.length > 20) state.events.pop();
+                ui.renderEventLog();
+            },
+
+            renderEventLog: () => {
+                const feed = document.getElementById('eventLogFeed');
+                if (!feed) return;
+                if (!state.events.length) return;
+                const fmt = d => d.toLocaleTimeString('ru', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+                feed.innerHTML = state.events.map(e => `
+                    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+                        <span style="font-size:13px;flex-shrink:0;">${e.icon}</span>
+                        <span style="font-size:11px;color:${e.color};flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.text}</span>
+                        <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(100,116,139,0.5);flex-shrink:0;">${fmt(e.time)}</span>
+                    </div>`).join('');
+            },
+
+            renderSessionStats: () => {
+                const el = document.getElementById('sessionStatsPills');
+                if (!el) return;
+                const s = state.sessionStats;
+                const sep = `<div style="width:1px;height:14px;background:rgba(255,255,255,0.08);"></div>`;
+                el.innerHTML = `
+                    <div style="display:flex;align-items:center;gap:5px;">
+                        <span style="font-size:10px;color:var(--muted);">↓ Загружено</span>
+                        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:#34d399;">${utils.formatBytes(s.totalDown)}</span>
+                    </div>${sep}
+                    <div style="display:flex;align-items:center;gap:5px;">
+                        <span style="font-size:10px;color:var(--muted);">↑ Отдано</span>
+                        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:#60a5fa;">${utils.formatBytes(s.totalUp)}</span>
+                    </div>${sep}
+                    <div style="display:flex;align-items:center;gap:5px;">
+                        <span style="font-size:10px;color:var(--muted);">Пик</span>
+                        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:#fbbf24;">${utils.formatBytes(s.peakDown)}/s ↓</span>
+                    </div>`;
+            },
+
+            renderMetrics: (data) => {
+                if (!data) return;
+                const cpuColor = data.cpu_percent > 80 ? '#f87171' : '#34d399';
+                const tempColor = data.temperature > 70 ? '#f87171' : '#fbbf24';
+                const uptimeSec = Math.floor(Date.now()/1000) - data.uptime;
+                const uptimeDays = Math.floor(uptimeSec / 86400);
+                const uptimeHrs = Math.floor((uptimeSec % 86400) / 3600);
+                const uptimeMin = Math.floor((uptimeSec % 3600) / 60);
+                const uptimeStr = uptimeDays > 0 ? `${uptimeDays}д ${uptimeHrs}ч` : `${uptimeHrs}ч ${uptimeMin}м`;
+                const ramPct = Math.round(data.memory_used / (data.memory_total || 1) * 100);
+                document.getElementById('systemMetrics').innerHTML = `
+                    <div class="metric-pill">
+                        <span style="color:var(--muted);">CPU</span>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <div style="width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,0.08);overflow:hidden;">
+                                <div style="width:${data.cpu_percent}%;height:100%;background:${cpuColor};transition:width 0.5s;"></div>
+                            </div>
+                            <span style="font-weight:700;color:${cpuColor};">${data.cpu_percent}%</span>
+                        </div>
+                    </div>
+                    <div class="metric-pill">
+                        <span style="color:var(--muted);">RAM</span>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <div style="width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,0.08);overflow:hidden;">
+                                <div style="width:${ramPct}%;height:100%;background:#60a5fa;transition:width 0.5s;"></div>
+                            </div>
+                            <span style="font-weight:700;color:#60a5fa;">${Math.round(data.memory_used/1024/1024)}MB</span>
+                        </div>
+                    </div>
+                    <div class="metric-pill">
+                        <span style="color:var(--muted);">Temp</span>
+                        <span style="font-weight:700;color:${tempColor};">${data.temperature}°C</span>
+                    </div>
+                    <div class="metric-pill">
+                        <span style="color:var(--muted);">Аптайм</span>
+                        <span style="font-weight:600;color:rgba(148,163,184,0.8);">${uptimeStr}</span>
+                    </div>`;
+            }
+        };
+
+        const actions = {
+            updateDeviceSettings: utils.debounce(async (ip, mode, assignedNode) => {
+                const result = await utils.apiCall(`/devices/${ip}`, { method: 'PUT', body: JSON.stringify({ mode, assigned_node: assignedNode }) });
+                if (result) actions.fetchData();
+            }, 400),
+
+            setGlobalNode: async (tag) => {
+                state.globalNode = tag;
+                ui.renderNodes();
+                ui.renderRouteViz();
+                await utils.apiCall('/subscription/node', { method: 'PUT', body: JSON.stringify({ global_node: tag }) });
+                actions.fetchNodes();
+                actions.fetchData();
+            },
+
+            fetchNodes: async () => {
+                const nodes = await utils.apiCall('/nodes/dashboard');
+                const subData = await utils.apiCall('/subscription');
+                if (nodes) {
+                    nodes.forEach(n => {
+                        const prev = state._prevNodeStatuses[n.tag];
+                        if (prev !== undefined && prev !== n.status) {
+                            if (n.status === 'offline') ui.addEvent('🔴', `Узел ${n.tag} недоступен`, '#f87171');
+                            else ui.addEvent('🟢', `Узел ${n.tag} восстановлен`, '#34d399');
+                        }
+                        state._prevNodeStatuses[n.tag] = n.status;
+                    });
+                    state.nodes = nodes;
+                }
+                if (subData) state.globalNode = subData.global_node || 'auto';
+                ui.renderNodes();
+                ui.renderRouteViz();
+            },
+
+            fetchTraffic: async () => {
+                const traffic = await utils.apiCall('/traffic');
+                if (traffic) {
+                    state.traffic = traffic;
+                    ui.updateTrafficDOM();
+                    const vals = Object.values(traffic);
+                    const totalDown = vals.reduce((s, v) => s + (v.speed_down || 0), 0);
+                    const totalUp   = vals.reduce((s, v) => s + (v.speed_up   || 0), 0);
+                    state.trafficHistory.push({ down: totalDown, up: totalUp });
+                    if (state.trafficHistory.length > 60) state.trafficHistory.shift();
+                    const ss = state.sessionStats;
+                    ss.totalDown = vals.reduce((s, v) => s + (v.total_down || 0), 0);
+                    ss.totalUp   = vals.reduce((s, v) => s + (v.total_up   || 0), 0);
+                    ss.peakDown  = Math.max(ss.peakDown, totalDown);
+                    ss.peakUp    = Math.max(ss.peakUp, totalUp);
+                    ui.drawTrafficChart();
+                    ui.renderSessionStats();
+                    ui.updateSidebarNetStats();
+                }
+            },
+
+            fetchData: async () => {
+                const [status, network, devices] = await Promise.all([
+                    utils.apiCall('/status'),
+                    utils.apiCall('/network-status'),
+                    utils.apiCall('/devices')
+                ]);
+                ui.renderMetrics(status);
+                ui.renderNetworkStatus(network);
+                if (devices) {
+                    const newIPs = devices.map(d => d.ip);
+                    if (state._prevDeviceIPs.length > 0) {
+                        newIPs.forEach(ip => {
+                            if (!state._prevDeviceIPs.includes(ip)) {
+                                const dev = devices.find(d => d.ip === ip);
+                                ui.addEvent('📱', `Новое устройство: ${dev?.hostname || ip} (${ip})`, '#fbbf24');
+                            }
+                        });
+                        state._prevDeviceIPs.forEach(ip => {
+                            if (!newIPs.includes(ip)) ui.addEvent('💤', `Устройство отключилось: ${ip}`, '#64748b');
+                        });
+                    }
+                    state._prevDeviceIPs = newIPs;
+                    state.devices = devices;
+                    ui.renderDevices(devices);
+                    actions.fetchVendors(devices);
+                }
+            },
+
+            fetchInitialStaticData: async () => {
+                const dhcp = await utils.apiCall('/dhcp');
+                if (dhcp) {
+                    document.getElementById('dhcpGateway').value = dhcp.gateway || '';
+                    document.getElementById('dhcpStart').value = dhcp.pool_start || '';
+                    document.getElementById('dhcpEnd').value = dhcp.pool_end || '';
+                    document.getElementById('dhcpDns').value = dhcp.dns || '';
+                }
+                const sub = await utils.apiCall('/subscription');
+                if (sub) {
+                    if (sub.url) document.getElementById('subUrlInput').value = sub.url;
+                    const rules = await utils.apiCall('/rules');
+                    if (rules) {
+                        const directEl = document.getElementById('rulesDirectInput');
+                        const proxyEl = document.getElementById('rulesProxyInput');
+                        if (directEl) directEl.value = (rules.direct || []).join('\n');
+                        if (proxyEl) proxyEl.value = (rules.proxy || []).join('\n');
+                    }
+                }
+            },
+
+            fetchVendors: async (devices) => {
+                const toFetch = devices.filter(d => d.mac && d.mac !== '00:00:00:00:00:00' && !(d.mac in state.vendorCache));
+                for (const dev of toFetch) {
+                    const data = await utils.apiCall(`/vendor/${encodeURIComponent(dev.mac)}`);
+                    if (data !== null) {
+                        state.vendorCache[dev.mac] = data.vendor || '';
+                        // Update icon in DOM without full re-render
+                        const iconEl = document.querySelector(`[data-icon-mac="${dev.mac}"]`);
+                        if (iconEl) {
+                            const type = vendorToType(data.vendor, dev.hostname);
+                            const ist = ICON_STYLE[type] || ICON_STYLE.unknown;
+                            iconEl.style.background = ist.bg;
+                            iconEl.style.borderColor = ist.border;
+                            iconEl.style.color = ist.color;
+                            iconEl.title = data.vendor || dev.hostname;
+                            const statusDot = iconEl.querySelector('[style*="bottom:-3px"]');
+                            const bLogo = getBrandLogoHtml(data.vendor, ist.color);
+                            iconEl.innerHTML = (bLogo || '')
+                                + `<span style="display:${bLogo ? 'none' : 'flex'};align-items:center;justify-content:center;">${DEVICE_ICONS[type] || DEVICE_ICONS.unknown}</span>`
+                                + (statusDot ? statusDot.outerHTML : '');
+                            // Update vendor label and display name
+                            const row = iconEl.closest('[data-ip]');
+                            if (row && data.vendor) {
+                                const nameEl = row.querySelector('[data-ip] > div > div > div:first-child');
+                                const labelEl = row.querySelector('.vendor-label');
+                                if (!labelEl) {
+                                    const nameContainer = iconEl.nextElementSibling;
+                                    if (nameContainer) {
+                                        const hn = nameContainer.querySelector('div:first-child');
+                                        if (hn && (hn.textContent === 'Устройство' || hn.textContent === 'Unknown')) hn.textContent = data.vendor;
+                                        const existing = nameContainer.querySelector('.vendor-lbl');
+                                        if (!existing) {
+                                            const lbl = document.createElement('div');
+                                            lbl.className = 'vendor-lbl';
+                                            lbl.style.cssText = "font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(100,116,139,0.6);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
+                                            lbl.textContent = data.vendor;
+                                            nameContainer.appendChild(lbl);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    await new Promise(r => setTimeout(r, 600));
+                }
+                try { sessionStorage.setItem('gsg_vendor_cache', JSON.stringify(state.vendorCache)); } catch(e) {}
+            },
+
+            fetchLogs: async () => {
+                const logs = await utils.apiCall('/logs');
+                const logBox = document.getElementById('systemLogsBox');
+                if (logBox && logs) {
+                    const isAtBottom = logBox.scrollHeight - logBox.clientHeight <= logBox.scrollTop + 20;
+                    logBox.innerHTML = logs.map(l => {
+                        const colored = l
+                            .replace(/\[INFO\]/g, '<span style="color:#34d399;">[INFO]</span>')
+                            .replace(/\[WARN\]/g, '<span style="color:#fbbf24;">[WARN]</span>')
+                            .replace(/\[ERROR\]/g, '<span style="color:#f87171;">[ERROR]</span>')
+                            .replace(/\[DEBUG\]/g, '<span style="color:#818cf8;">[DEBUG]</span>');
+                        return `<div style="padding:1px 0;">${colored}</div>`;
+                    }).join('') + '<div style="margin-top:4px;"><span style="color:var(--emerald);animation:skelPulse 1s infinite;display:inline-block;">█</span></div>';
+                    if (isAtBottom) logBox.scrollTop = logBox.scrollHeight;
+                }
+            }
+        };
+
+        const init = () => {
+            // Load device apps from localStorage
+            try {
+                const saved = localStorage.getItem('gsg_device_apps');
+                if (saved) state.deviceApps = JSON.parse(saved);
+            } catch(e) {}
+
+            // Global mode for all devices
+            document.getElementById('globalModeSelect')?.addEventListener('change', async (e) => {
+                const mode = e.target.value;
+                if (!mode) return;
+                e.target.value = '';
+                for (const dev of state.devices) {
+                    await actions.updateDeviceSettings(dev.ip, mode, 'auto');
+                }
+                await actions.fetchData();
+            });
+
+            // App chip clicks
+            document.getElementById('devicesTableBody')?.addEventListener('click', (e) => {
+                const chip = e.target.closest('.app-chip');
+                if (!chip) return;
+                const ip = chip.dataset.ip;
+                const app = chip.dataset.app;
+                if (!ip || !app) return;
+
+                if (!state.deviceApps[ip]) state.deviceApps[ip] = {};
+                state.deviceApps[ip][app] = !state.deviceApps[ip][app];
+                localStorage.setItem('gsg_device_apps', JSON.stringify(state.deviceApps));
+
+                // Determine target node based on selected apps
+                const devApps = state.deviceApps[ip];
+                const needsUS = ['gemini', 'claude'].some(a => devApps[a]);
+                let targetNode = 'auto';
+                if (needsUS) {
+                    const nyNode = state.nodes.find(n => /ny|new.?york/i.test(n.tag) && n.status === 'online');
+                    if (nyNode) targetNode = nyNode.tag;
+                }
+
+                const dev = state.devices.find(d => d.ip === ip);
+                const currentMode = dev ? dev.mode : 'smart';
+                actions.updateDeviceSettings(ip, currentMode, targetNode);
+
+                state._devicesHash = null;
+                ui.renderDevices(state.devices);
+            });
+
+            // Device events
+            document.getElementById('devicesTableBody')?.addEventListener('change', (e) => {
+                const ip = e.target.dataset.ip;
+                if (!ip) return;
+                const row = e.target.closest('[data-ip]');
+                if (e.target.classList.contains('device-toggle')) {
+                    actions.updateDeviceSettings(ip, e.target.checked ? 'smart' : 'bypass', 'auto');
+                } else if (e.target.classList.contains('device-mode-select') || e.target.classList.contains('device-node-select')) {
+                    const modeEl = document.querySelector(`.device-mode-select[data-ip="${ip}"]`);
+                    const nodeEl = document.querySelector(`.device-node-select[data-ip="${ip}"]`);
+                    if (modeEl && nodeEl) actions.updateDeviceSettings(ip, modeEl.value, nodeEl.value);
+                }
+            });
+
+            // Subscription save
+            document.getElementById('saveSubBtn')?.addEventListener('click', async () => {
+                const btn = document.getElementById('saveSubBtn');
+                const orig = btn.textContent;
+                btn.textContent = 'Ожидайте...';
+                btn.disabled = true;
+                await utils.apiCall('/subscription', { method: 'PUT', body: JSON.stringify({ url: document.getElementById('subUrlInput').value }) });
+                btn.textContent = 'Готово!';
+                setTimeout(() => { btn.textContent = orig; btn.disabled = false; actions.fetchNodes(); }, 2000);
+            });
+
+            // Save rules
+            document.getElementById('saveRulesBtn')?.addEventListener('click', async () => {
+                const btn = document.getElementById('saveRulesBtn');
+                const orig = btn.textContent;
+                btn.textContent = 'Сохранение...';
+                btn.disabled = true;
+                const direct = (document.getElementById('rulesDirectInput').value || '').split('\n').filter(l => l.trim());
+                const proxy = (document.getElementById('rulesProxyInput').value || '').split('\n').filter(l => l.trim());
+                await utils.apiCall('/rules', { method: 'PUT', body: JSON.stringify({ direct, proxy }) });
+                btn.textContent = 'Сохранено!';
+                setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2000);
+            });
+
+            // Save DHCP
+            document.getElementById('saveDhcpBtn')?.addEventListener('click', async () => {
+                const btn = document.getElementById('saveDhcpBtn');
+                const orig = btn.textContent;
+                btn.textContent = 'Сохранение...';
+                btn.disabled = true;
+                await utils.apiCall('/dhcp', { method: 'PUT', body: JSON.stringify({
+                    gateway: document.getElementById('dhcpGateway').value,
+                    pool_start: document.getElementById('dhcpStart').value,
+                    pool_end: document.getElementById('dhcpEnd').value,
+                    dns: document.getElementById('dhcpDns').value
+                })});
+                btn.textContent = 'Сохранено!';
+                setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2000);
+            });
+
+            // Load vendor cache from sessionStorage
+            try {
+                const saved = sessionStorage.getItem('gsg_vendor_cache');
+                if (saved) state.vendorCache = JSON.parse(saved);
+            } catch(e) {}
+
+            // Always expert mode
+            state.expertMode = true;
+            ui.addEvent('🚀', 'Панель управления GSG запущена', '#c9a84c');
+            ui.renderSessionStats();
+
+            // Init data
+            actions.fetchInitialStaticData();
+            actions.fetchNodes();
+
+            const pollingLoop = async () => { await actions.fetchData(); setTimeout(pollingLoop, 5000); };
+            setTimeout(pollingLoop, 300);
+
+            const trafficLoop = async () => { await actions.fetchTraffic(); setTimeout(trafficLoop, 1000); };
+            setTimeout(trafficLoop, 1000);
+
+            const logsLoop = async () => { await actions.fetchLogs(); setTimeout(logsLoop, 3000); };
+            logsLoop();
+        };
+
+        return { init, state, ui, actions };
+    })();
+
+    document.addEventListener('DOMContentLoaded', GatewayApp.init);
+</script>
+</body>
+</html>

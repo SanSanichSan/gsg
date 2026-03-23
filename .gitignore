@@ -1,0 +1,25 @@
+# Claude Code
+.claude/
+
+# Proprietary assets
+web-orchestrator/static/logo.png
+
+# Runtime / secrets (created on device, not tracked)
+/etc/gsg/
+*.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
