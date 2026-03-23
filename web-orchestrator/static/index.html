@@ -252,6 +252,18 @@
         .device-row:last-child { border-bottom: none; }
         .device-row:hover { background: rgba(255,255,255,0.02); }
 
+        /* Device row grid (desktop) */
+        .dev-row-grid {
+            display: grid;
+            grid-template-columns: minmax(160px,220px) 120px 80px 1fr 200px 250px;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            transition: background 0.15s;
+        }
+        .dev-row-grid:last-child { border-bottom: none; }
+
         /* Device toggle */
         .dev-toggle { position: relative; width: 42px; height: 24px; }
         .dev-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
@@ -450,6 +462,34 @@
         /* Skeleton */
         .skel { background: rgba(255,255,255,0.06); border-radius: 6px; animation: skelPulse 1.5s ease-in-out infinite; }
         @keyframes skelPulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+        /* Mobile: show header */
+        @media (max-width: 768px) {
+            #mobileHeader { display: flex !important; }
+            #topGrid { grid-template-columns: 1fr !important; }
+            .dev-table-hdr { display: none !important; }
+            .dev-row-grid {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 0 !important;
+                padding: 0 !important;
+            }
+            .dev-row-mobile {
+                display: flex;
+                align-items: flex-start;
+                gap: 12px;
+                padding: 14px 16px;
+                border-bottom: 1px solid rgba(255,255,255,0.04);
+            }
+            .dev-row-mobile-body { flex: 1; min-width: 0; }
+            .dev-row-mobile-right { display: flex; flex-direction: column; gap: 6px; min-width: 180px; }
+            .dev-col-spark, .dev-col-trafik, .dev-col-route { display: none; }
+        }
+        @media (min-width: 769px) {
+            .dev-row-mobile { display: contents; }
+            .dev-row-mobile-body { display: contents; }
+            .dev-row-mobile-right { display: contents; }
+        }
     </style>
 </head>
 <body>
@@ -562,6 +602,17 @@
 
         <main id="main-scroll" style="flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:20px;" id="mainContent">
 
+            <!-- Page tagline -->
+            <div style="text-align:center;padding:8px 0 4px;position:relative;">
+                <div style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:0.18em;text-transform:uppercase;display:flex;align-items:center;justify-content:center;gap:10px;">
+                    <span style="display:inline-block;width:32px;height:1px;background:linear-gradient(to right,transparent,rgba(201,168,76,0.4));"></span>
+                    <span style="color:var(--gold);opacity:0.7;">GlobalShield</span>
+                    <span style="opacity:0.4;">·</span>
+                    <span style="opacity:0.55;">Шлюз в безопасный интернет за пределами ограничений</span>
+                    <span style="display:inline-block;width:32px;height:1px;background:linear-gradient(to left,transparent,rgba(201,168,76,0.4));"></span>
+                </div>
+            </div>
+
             <!-- Top row: Status + Subscription -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;" class="reveal reveal-1" id="topGrid">
 
@@ -643,21 +694,49 @@
                             <div style="font-size:15px;font-weight:800;color:#f1f5f9;">Устройства в сети</div>
                             <div style="font-size:11px;color:var(--muted);margin-top:2px;">Активные клиенты локальной сети</div>
                         </div>
-                        <div id="devicesCounter" style="display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);flex-shrink:0;">
-                            <div class="pulse-dot green"></div>
-                            <span style="font-size:11px;font-weight:700;color:#93c5fd;" id="devicesCount">0</span>
+                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                            <div id="devicesCounter" style="display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);flex-shrink:0;">
+                                <div class="pulse-dot green"></div>
+                                <span style="font-size:11px;font-weight:700;color:#93c5fd;" id="devicesCount">0</span>
+                            </div>
+                            <!-- Traffic reset controls -->
+                            <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                                <select id="scheduleTypeSelect" onchange="GatewayApp.actions.updateSchedule()" class="gsg-select" style="font-size:11px;padding:4px 8px;" title="Автосброс трафика">
+                                    <option value="never">Без сброса</option>
+                                    <option value="daily">Сброс в полночь</option>
+                                    <option value="monthly">Сброс 1-го числа</option>
+                                </select>
+                                <input id="scheduleTimeInput" type="time" value="00:00" onchange="GatewayApp.actions.updateSchedule()" class="gsg-select" style="font-size:11px;padding:4px 6px;width:80px;" title="Время сброса">
+                                <div style="position:relative;">
+                                    <select id="resetScopeGlobal" class="gsg-select" style="font-size:11px;padding:4px 8px;">
+                                        <option value="daily">Сбросить сегодня</option>
+                                        <option value="monthly">Сбросить месяц</option>
+                                        <option value="yearly">Сбросить год</option>
+                                        <option value="all">Сбросить всё</option>
+                                    </select>
+                                </div>
+                                <button onclick="GatewayApp.actions.resetTraffic(document.getElementById('resetScopeGlobal').value, null)" style="padding:4px 10px;border-radius:7px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);color:#f87171;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;" title="Сбросить трафик всех устройств">Сброс всех</button>
+                            </div>
                         </div>
                     </div>
                     <!-- Desktop table header -->
-                    <div style="display:grid;grid-template-columns:1fr 120px 96px 210px 140px 230px;gap:16px;padding:8px 20px;border-bottom:1px solid rgba(255,255,255,0.04);align-items:center;">
+                    <div class="dev-table-hdr" style="display:grid;grid-template-columns:minmax(160px,220px) 120px 80px 1fr 200px 250px;gap:14px;padding:8px 20px;border-bottom:1px solid rgba(255,255,255,0.04);align-items:center;">
                         <div class="section-label sort-hdr" onclick="GatewayApp.ui.setSort('hostname')" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:3px;white-space:nowrap;">Клиент <span id="sort-ind-hostname" style="font-size:9px;"></span></div>
                         <div class="section-label" style="white-space:nowrap;">Активность</div>
                         <div class="section-label sort-hdr" onclick="GatewayApp.ui.setSort('traffic')" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:flex-end;gap:3px;white-space:nowrap;"><span id="sort-ind-traffic" style="font-size:9px;"></span>Трафик</div>
+                        <div class="section-label sort-hdr" onclick="GatewayApp.ui.setSort('ip')" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:3px;white-space:nowrap;">Маршрут <span id="sort-ind-ip" style="font-size:9px;"></span></div>
                         <div class="section-label" style="white-space:nowrap;">Приложения</div>
-                        <div class="section-label sort-hdr" onclick="GatewayApp.ui.setSort('ip')" id="devColNet" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:3px;white-space:nowrap;">IP/MAC <span id="sort-ind-ip" style="font-size:9px;"></span></div>
-                        <div class="section-label sort-hdr" onclick="GatewayApp.ui.setSort('mode')" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:3px;white-space:nowrap;">Режим <span id="sort-ind-mode" style="font-size:9px;"></span></div>
+                        <div class="section-label sort-hdr" onclick="GatewayApp.ui.setSort('mode')" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:3px;white-space:nowrap;">Режим/Узел <span id="sort-ind-mode" style="font-size:9px;"></span></div>
                     </div>
                     <div id="devicesTableBody"></div>
+                    <!-- Legend -->
+                    <div style="padding:10px 20px;border-top:1px solid rgba(255,255,255,0.04);display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+                        <span class="section-label" style="margin-right:4px;">Легенда</span>
+                        <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:5px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);font-size:10px;color:#93c5fd;">🧠 Smart — обходит блокировки автоматически</span>
+                        <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:5px;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.2);font-size:10px;color:#c084fc;">🌐 Global — весь трафик через узел</span>
+                        <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:5px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);font-size:10px;color:#fbbf24;">⚡ Bypass — напрямую без прокси</span>
+                        <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:5px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);font-size:10px;color:#f87171;">🚫 Block — полная блокировка</span>
+                    </div>
                 </div>
             </div>
 
@@ -928,6 +1007,7 @@
             vendorCache: {},
             deviceTrafficHistory: {},
             nodeTraffic: {},
+            deviceHistory: {},
             sortBy: 'hostname',
             sortDir: 1
         };
@@ -1027,9 +1107,6 @@
 
                 ui.renderDevices(state.devices);
 
-                // Handle device table net column header
-                const devColNet = document.getElementById('devColNet');
-                if (devColNet) devColNet.style.display = expert ? 'block' : 'none';
             },
 
             renderDevices: (devices) => {
@@ -1102,42 +1179,72 @@
                         ${hasUSApp ? `<div style="font-size:9px;color:#60a5fa;font-weight:700;font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:3px;"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>NY узел</div>` : ''}
                     </div>`;
 
-                    return `<div style="display:grid;grid-template-columns:1fr 120px 96px 210px 140px 230px;align-items:center;gap:16px;padding:14px 20px;border-bottom:1px solid rgba(255,255,255,0.04);transition:background 0.15s;" data-ip="${dev.ip}" class="device-row-item" onmouseover="this.style.background='rgba(255,255,255,0.025)'" onmouseout="this.style.background=''">
-                        <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+                    // Compute effective route for this device
+                    let routeNode = null;
+                    if (dev.mode !== 'bypass' && dev.mode !== 'block') {
+                        const nodeTag = dev.assigned_node && dev.assigned_node !== 'auto' ? dev.assigned_node : (state.globalNode !== 'auto' ? state.globalNode : null);
+                        if (nodeTag) routeNode = state.nodes.find(n => n.tag === nodeTag) || state.nodes.find(n => n.tag.toLowerCase().includes(nodeTag.toLowerCase()));
+                        if (!routeNode) routeNode = state.nodes.filter(n => n.status === 'online').sort((a,b) => a.ping-b.ping)[0] || null;
+                    }
+                    let routeHtml;
+                    if (dev.mode === 'bypass') {
+                        routeHtml = `<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:20px;">⚡</span><div><div style="font-size:12px;font-weight:700;color:#f59e0b;">Напрямую</div><div style="font-size:10px;color:var(--muted);">без прокси</div></div></div>`;
+                    } else if (dev.mode === 'block') {
+                        routeHtml = `<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:20px;">🚫</span><div><div style="font-size:12px;font-weight:700;color:#ef4444;">Заблокировано</div></div></div>`;
+                    } else if (routeNode) {
+                        const rn = routeNode;
+                        const rflag = utils.getFlagEmoji(rn.tag);
+                        const rpingColor = rn.ping < 100 ? '#34d399' : rn.ping < 250 ? '#f59e0b' : '#ef4444';
+                        const ronline = rn.status === 'online';
+                        const smartBadge = dev.mode === 'smart' ? `<span style="font-size:9px;color:#60a5fa;font-weight:700;background:rgba(59,130,246,0.12);padding:1px 5px;border-radius:3px;margin-left:4px;">Smart</span>` : '';
+                        routeHtml = `<div style="display:flex;align-items:center;gap:8px;min-width:0;"><span style="font-size:22px;flex-shrink:0;">${rflag}</span><div style="min-width:0;"><div style="font-size:12px;font-weight:700;color:${ronline?'#f1f5f9':'var(--muted)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${rn.tag}${smartBadge}</div><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:${ronline?rpingColor:'#ef4444'};">${ronline?rn.ping+'ms':'Недоступен'}</div></div></div>`;
+                    } else {
+                        routeHtml = `<div style="font-size:11px;color:var(--muted);">Нет узлов</div>`;
+                    }
+
+                    return `<div data-ip="${dev.ip}" class="device-row-item dev-row-grid" onmouseover="this.style.background='rgba(255,255,255,0.025)'" onmouseout="this.style.background=''">
+                        <div class="dev-row-mobile" style="display:contents;">
+                        <div class="dev-row-mobile-body" style="display:contents;">
+                        <!-- Col 1: CLIENT -->
+                        <div style="display:flex;align-items:center;gap:10px;min-width:0;">
                             <div data-icon-mac="${dev.mac}" title="${cachedVendor || dev.hostname}" style="width:36px;height:36px;border-radius:10px;background:${ist.bg};border:1px solid ${ist.border};display:flex;align-items:center;justify-content:center;color:${ist.color};flex-shrink:0;position:relative;overflow:visible;">
                                 ${brandLogoHtml || ''}
                                 <span style="display:${brandLogoHtml ? 'none' : 'flex'};align-items:center;justify-content:center;">${DEVICE_ICONS[deviceType] || DEVICE_ICONS.unknown}</span>
                                 <div style="position:absolute;bottom:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:${statusColor};border:2px solid var(--bg);z-index:1;"></div>
                             </div>
                             <div style="min-width:0;flex:1;">
-                                <div style="font-size:13px;font-weight:700;color:${isBlocked ? '#f87171' : '#f1f5f9'};${isBlocked ? 'text-decoration:line-through;' : ''}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${displayName}</div>
-                                <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:1px;">${dev.ip}</div>
+                                <div style="display:flex;align-items:center;gap:6px;">
+                                    <div style="font-size:13px;font-weight:700;color:${isBlocked ? '#f87171' : '#f1f5f9'};${isBlocked ? 'text-decoration:line-through;' : ''}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${displayName}</div>
+                                    <button onclick="event.stopPropagation();GatewayApp.ui.openHistoryModal('${dev.ip}')" title="История трафика" style="width:18px;height:18px;border-radius:5px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;padding:0;" onmouseover="this.style.borderColor='rgba(59,130,246,0.4)';this.style.color='#93c5fd'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)';this.style.color='var(--muted)'">
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                    </button>
+                                </div>
+                                <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:1px;">${dev.ip} · <span style="color:rgba(100,116,139,0.5);">${dev.mac}</span></div>
                                 ${vendorLabel}
-                                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:3px;">${typeLabel}${modeBadge}</div>
-                                <div style="display:flex;gap:8px;margin-top:5px;">
+                                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:3px;">${typeLabel}</div>
+                                <div style="display:flex;gap:8px;margin-top:3px;">
                                     <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#34d399;" class="dev-total-down" data-ip="${dev.ip}"></span>
                                     <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#60a5fa;" class="dev-total-up" data-ip="${dev.ip}"></span>
                                 </div>
                             </div>
                         </div>
-
-                        <div class="dev-spark" data-ip="${dev.ip}" style="display:flex;align-items:flex-end;gap:1px;height:26px;padding:2px 0;overflow:hidden;">
+                        <!-- Col 2: ACTIVITY -->
+                        <div class="dev-col-spark dev-spark" data-ip="${dev.ip}" style="display:flex;align-items:flex-end;gap:1px;height:26px;padding:2px 0;overflow:hidden;">
                             ${ui.makeSparkBars(state.deviceTrafficHistory[dev.ip] || [])}
                         </div>
-
-                        <div style="text-align:right;">
+                        <!-- Col 3: TRAFFIC -->
+                        <div class="dev-col-trafik" style="text-align:right;">
                             <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#34d399;"><span class="traffic-down" data-ip="${dev.ip}">0 B/s</span> ↓</div>
                             <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#60a5fa;margin-top:1px;"><span class="traffic-up" data-ip="${dev.ip}">0 B/s</span> ↑</div>
                             <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:1px;" class="traffic-total" data-ip="${dev.ip}">0 B</div>
                         </div>
-
+                        <!-- Col 4: ROUTE -->
+                        <div class="dev-col-route">${routeHtml}</div>
+                        </div><!-- end mobile-body -->
+                        <div class="dev-row-mobile-right" style="display:contents;">
+                        <!-- Col 5: APPS -->
                         ${appsHtml}
-
-                        <div>
-                            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);">${dev.ip}</div>
-                            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(100,116,139,0.6);margin-top:2px;">${dev.mac}</div>
-                        </div>
-
+                        <!-- Col 6: MODE/NODE -->
                         <div>
                             <div style="display:flex;flex-direction:column;gap:6px;">
                                 <select class="gsg-select device-mode-select" data-ip="${dev.ip}" style="width:100%;">
@@ -1151,6 +1258,8 @@
                                 </select>
                             </div>
                         </div>
+                        </div><!-- end mobile-right -->
+                        </div><!-- end dev-row-mobile -->
                     </div>`;
                 }).join('');
 
@@ -1164,6 +1273,7 @@
 
             updateTrafficDOM: () => {
                 if (!state.traffic) return;
+                const today = new Date().toISOString().slice(0, 10);
                 Object.keys(state.traffic).forEach(ip => {
                     const data = state.traffic[ip];
                     const downEl = document.querySelector(`.traffic-down[data-ip="${ip}"]`);
@@ -1172,10 +1282,15 @@
                     if (downEl) downEl.textContent = utils.formatBytes(data.speed_down) + '/s';
                     if (upEl) upEl.textContent = utils.formatBytes(data.speed_up) + '/s';
                     if (totalEl) totalEl.textContent = utils.formatBytes(data.total_down + data.total_up);
+                    // Prefer persistent history for today totals; fall back to session totals
+                    const hd = state.deviceHistory[ip];
+                    const todayH = hd?.daily?.[today];
                     const tdEl = document.querySelector(`.dev-total-down[data-ip="${ip}"]`);
                     const tuEl = document.querySelector(`.dev-total-up[data-ip="${ip}"]`);
-                    if (data.total_down > 0 && tdEl) tdEl.textContent = '↓ ' + utils.formatBytes(data.total_down);
-                    if (data.total_up > 0 && tuEl) tuEl.textContent = '↑ ' + utils.formatBytes(data.total_up);
+                    const showDown = todayH ? todayH.down : data.total_down;
+                    const showUp   = todayH ? todayH.up   : data.total_up;
+                    if (tdEl) tdEl.textContent = showDown > 0 ? '↓ ' + utils.formatBytes(showDown) : '';
+                    if (tuEl) tuEl.textContent = showUp   > 0 ? '↑ ' + utils.formatBytes(showUp)   : '';
                     // Update sparkbar
                     if (!state.deviceTrafficHistory[ip]) state.deviceTrafficHistory[ip] = [];
                     state.deviceTrafficHistory[ip].push(data.speed_down || 0);
@@ -1224,28 +1339,36 @@
                 const el = document.getElementById('sidebarNetStats');
                 if (!el) return;
                 const providerIp = state.networkData?.direct?.ip || '—';
+                const providerFlag = state.networkData?.direct?.country ? utils.getFlagEmoji(state.networkData.direct.country) : '🌐';
+
+                const totalNodeDown = Object.values(state.nodeTraffic).reduce((s,v) => s+(v.total_down||0), 0);
+                const totalNodeUp   = Object.values(state.nodeTraffic).reduce((s,v) => s+(v.total_up||0), 0);
 
                 const nodesHtml = state.nodes.length
                     ? state.nodes.map(n => {
                         const nt = state.nodeTraffic[n.tag] || {};
                         const total = (nt.total_down || 0) + (nt.total_up || 0);
                         const online = n.status === 'online';
-                        const pingColor = online ? (n.ping < 100 ? '#34d399' : n.ping < 250 ? '#f59e0b' : '#ef4444') : '#ef4444';
+                        const pingColor = online ? (n.ping < 100 ? '#34d399' : n.ping < 250 ? '#f59e0b' : '#ef4444') : 'rgba(239,68,68,0.5)';
                         return `<div style="display:flex;align-items:center;gap:5px;padding:2px 0;">
                             <div style="width:5px;height:5px;border-radius:50%;background:${online?'#34d399':'rgba(239,68,68,0.5)'};flex-shrink:0;"></div>
-                            <span style="font-size:10px;color:${online?'#e2e8f0':'var(--muted)'};font-weight:600;min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${n.tag}</span>
+                            <span style="font-size:10px;color:${online?'#e2e8f0':'var(--muted)'};font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${n.tag}</span>
                             <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">
                                 ${total>0?`<span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(100,116,139,0.6);">${utils.formatBytes(total)}</span>`:''}
-                                <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:${pingColor};">${online?n.server:'—'}</span>
+                                <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:${pingColor};">${online?n.ping+'ms':'—'}</span>
                             </div>
                         </div>`;
                     }).join('')
+                    + (totalNodeDown + totalNodeUp > 0 ? `<div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.06);display:flex;gap:8px;">
+                        <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#34d399;">↓ ${utils.formatBytes(totalNodeDown)}</span>
+                        <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#60a5fa;">↑ ${utils.formatBytes(totalNodeUp)}</span>
+                    </div>` : '')
                     : `<div style="font-size:10px;color:var(--muted);font-style:italic;">Нет узлов</div>`;
 
                 el.innerHTML = `
                     <div class="metric-pill">
                         <span style="color:var(--muted);">Провайдер</span>
-                        <span style="font-weight:700;color:#f1f5f9;font-family:'JetBrains Mono',monospace;font-size:11px;">${providerIp}</span>
+                        <span style="font-weight:700;color:#f1f5f9;font-family:'JetBrains Mono',monospace;font-size:11px;">${providerFlag} ${providerIp}</span>
                     </div>
                     <div class="metric-pill" style="flex-direction:column;align-items:flex-start;gap:5px;padding:8px 10px;">
                         <span style="color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:0.06em;font-weight:700;">Узлы</span>
@@ -1407,15 +1530,6 @@
                         ${appBadge('#d97706', APP_ICONS.claude, 'Claude')}
                     </div>
 
-                </div>
-
-                <!-- РКН статус -->
-                <div style="border-top:1px solid var(--card-border);padding-top:10px;display:flex;align-items:center;justify-content:space-between;">
-                    <div style="display:flex;align-items:center;gap:8px;">
-                        <div style="width:6px;height:6px;border-radius:50%;background:#ef4444;animation:skelPulse 1.5s infinite;flex-shrink:0;"></div>
-                        <span style="font-size:11px;font-weight:600;color:var(--muted);">DPI провайдера — прямой трафик</span>
-                    </div>
-                    <span style="font-size:10px;font-weight:700;color:#f87171;font-family:'JetBrains Mono',monospace;">Drop</span>
                 </div>`;
             },
 
@@ -1561,6 +1675,80 @@
                         <span style="font-size:10px;color:var(--muted);">Пик</span>
                         <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:#fbbf24;">${utils.formatBytes(s.peakDown)}/s ↓</span>
                     </div>`;
+            },
+
+            showToast: (msg) => {
+                let el = document.getElementById('gsgToast');
+                if (!el) {
+                    el = document.createElement('div');
+                    el.id = 'gsgToast';
+                    el.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);backdrop-filter:blur(16px);color:#34d399;font-size:12px;font-weight:700;padding:8px 18px;border-radius:10px;z-index:9999;transition:opacity 0.3s;pointer-events:none;';
+                    document.body.appendChild(el);
+                }
+                el.textContent = msg;
+                el.style.opacity = '1';
+                clearTimeout(el._t);
+                el._t = setTimeout(() => { el.style.opacity = '0'; }, 2500);
+            },
+
+            openHistoryModal: (ip) => {
+                const dev = state.devices.find(d => d.ip === ip);
+                const hd = state.deviceHistory[ip] || {};
+                const today = new Date().toISOString().slice(0, 10);
+                const thisMonth = today.slice(0, 7);
+                const thisYear = today.slice(0, 4);
+
+                const todayD = hd.daily?.[today] || {up:0, down:0};
+                const monthD = Object.entries(hd.monthly || {}).filter(([k]) => k === thisMonth).reduce((s,[,v])=>({up:s.up+v.up,down:s.down+v.down}), {up:0,down:0});
+                const yearD  = Object.entries(hd.yearly  || {}).filter(([k]) => k === thisYear ).reduce((s,[,v])=>({up:s.up+v.up,down:s.down+v.down}), {up:0,down:0});
+                const allD   = {up: hd.alltime_up||0, down: hd.alltime_down||0};
+
+                // Last 7 days
+                const days7 = Array.from({length:7}, (_, i) => {
+                    const d = new Date(); d.setDate(d.getDate() - (6 - i));
+                    const key = d.toISOString().slice(0,10);
+                    const label = d.toLocaleDateString('ru', {weekday:'short', day:'numeric'});
+                    const val = hd.daily?.[key] || {up:0, down:0};
+                    return {key, label, val};
+                });
+                const maxDay = Math.max(1, ...days7.map(d => d.val.down + d.val.up));
+
+                const cell = (label, data, color) => `
+                    <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;text-align:center;">
+                        <div style="font-size:10px;color:var(--muted);font-weight:600;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px;">${label}</div>
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#34d399;">↓ ${utils.formatBytes(data.down)}</div>
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#60a5fa;margin-top:2px;">↑ ${utils.formatBytes(data.up)}</div>
+                    </div>`;
+
+                const barsHtml = days7.map(d => {
+                    const total = d.val.down + d.val.up;
+                    const h = Math.max(2, Math.round((total / maxDay) * 40));
+                    return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;">
+                        <div style="width:100%;max-width:28px;height:${h}px;background:linear-gradient(to top,rgba(16,185,129,0.5),rgba(59,130,246,0.5));border-radius:3px;align-self:flex-end;min-height:2px;" title="${d.key}: ${utils.formatBytes(total)}"></div>
+                        <div style="font-size:9px;color:var(--muted);white-space:nowrap;">${d.label}</div>
+                    </div>`;
+                }).join('');
+
+                const name = dev ? (dev.hostname === 'Устройство' ? dev.ip : dev.hostname) : ip;
+
+                const modal = document.getElementById('historyModal');
+                document.getElementById('historyModalTitle').textContent = name;
+                document.getElementById('historyModalIp').textContent = ip;
+                document.getElementById('historyModalCells').innerHTML =
+                    cell('Сегодня', todayD, '#34d399') +
+                    cell('Месяц', monthD, '#60a5fa') +
+                    cell('Год', yearD, '#a78bfa') +
+                    cell('За всё время', allD, '#fbbf24');
+                document.getElementById('historyModalBars').innerHTML = barsHtml;
+                document.getElementById('historyModalIpStore').value = ip;
+                modal.style.display = 'flex';
+                setTimeout(() => { modal.style.opacity = '1'; }, 10);
+            },
+
+            closeHistoryModal: () => {
+                const modal = document.getElementById('historyModal');
+                modal.style.opacity = '0';
+                setTimeout(() => { modal.style.display = 'none'; }, 200);
             },
 
             renderMetrics: (data) => {
@@ -1772,6 +1960,33 @@
                     }).join('') + '<div style="margin-top:4px;"><span style="color:var(--emerald);animation:skelPulse 1s infinite;display:inline-block;">█</span></div>';
                     if (isAtBottom) logBox.scrollTop = logBox.scrollHeight;
                 }
+            },
+
+            fetchTrafficHistory: async () => {
+                const data = await utils.apiCall('/traffic/history');
+                if (data) {
+                    state.deviceHistory = data.devices || {};
+                    const sched = data.schedule || {};
+                    const typeEl = document.getElementById('scheduleTypeSelect');
+                    if (typeEl) typeEl.value = sched.type || 'never';
+                    const timeEl = document.getElementById('scheduleTimeInput');
+                    if (timeEl) timeEl.value = sched.time || '00:00';
+                    ui.updateTrafficDOM(); // refresh today totals from history
+                }
+            },
+
+            resetTraffic: async (scope, ip) => {
+                const body = JSON.stringify({ scope, ip: ip || null });
+                await utils.apiCall('/traffic/reset', { method: 'POST', body });
+                await actions.fetchTrafficHistory();
+                ui.showToast(`Трафик сброшен (${scope}${ip ? ' · ' + ip : ''})`);
+            },
+
+            updateSchedule: async () => {
+                const type = document.getElementById('scheduleTypeSelect')?.value || 'never';
+                const time = document.getElementById('scheduleTimeInput')?.value || '00:00';
+                await utils.apiCall('/traffic/schedule', { method: 'PUT', body: JSON.stringify({ type, time }) });
+                ui.showToast('Расписание сохранено');
             }
         };
 
@@ -1897,6 +2112,9 @@
             const trafficLoop = async () => { await actions.fetchTraffic(); setTimeout(trafficLoop, 1000); };
             setTimeout(trafficLoop, 1000);
 
+            const historyLoop = async () => { await actions.fetchTrafficHistory(); setTimeout(historyLoop, 30000); };
+            setTimeout(historyLoop, 2000);
+
             const logsLoop = async () => { await actions.fetchLogs(); setTimeout(logsLoop, 3000); };
             logsLoop();
         };
@@ -1906,5 +2124,37 @@
 
     document.addEventListener('DOMContentLoaded', GatewayApp.init);
 </script>
+
+<!-- Traffic History Modal -->
+<div id="historyModal" style="display:none;opacity:0;position:fixed;inset:0;z-index:1000;align-items:center;justify-content:center;transition:opacity 0.2s;" onclick="if(event.target===this)GatewayApp.ui.closeHistoryModal()">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);"></div>
+    <div class="glass" style="position:relative;z-index:1;width:min(520px,92vw);padding:24px;border-radius:20px;border:1px solid rgba(255,255,255,0.1);">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;">
+            <div>
+                <div style="font-size:15px;font-weight:800;color:#f1f5f9;" id="historyModalTitle">Устройство</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-top:2px;" id="historyModalIp"></div>
+            </div>
+            <button onclick="GatewayApp.ui.closeHistoryModal()" style="width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--muted);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">×</button>
+        </div>
+        <!-- 4-cell stats grid -->
+        <div id="historyModalCells" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:16px;"></div>
+        <!-- 7-day bar chart -->
+        <div style="margin-bottom:16px;">
+            <div style="font-size:10px;color:var(--muted);font-weight:600;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px;">Последние 7 дней</div>
+            <div id="historyModalBars" style="display:flex;gap:4px;align-items:flex-end;height:60px;padding-bottom:4px;"></div>
+        </div>
+        <!-- Reset buttons -->
+        <div style="border-top:1px solid rgba(255,255,255,0.07);padding-top:14px;">
+            <div style="font-size:10px;color:var(--muted);font-weight:600;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px;">Сбросить для этого устройства</div>
+            <input type="hidden" id="historyModalIpStore">
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button onclick="GatewayApp.actions.resetTraffic('daily', document.getElementById('historyModalIpStore').value).then(()=>GatewayApp.ui.openHistoryModal(document.getElementById('historyModalIpStore').value))" style="padding:5px 12px;border-radius:7px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);color:#93c5fd;font-size:11px;font-weight:700;cursor:pointer;">Сегодня</button>
+                <button onclick="GatewayApp.actions.resetTraffic('monthly', document.getElementById('historyModalIpStore').value).then(()=>GatewayApp.ui.openHistoryModal(document.getElementById('historyModalIpStore').value))" style="padding:5px 12px;border-radius:7px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);color:#93c5fd;font-size:11px;font-weight:700;cursor:pointer;">Этот месяц</button>
+                <button onclick="GatewayApp.actions.resetTraffic('yearly', document.getElementById('historyModalIpStore').value).then(()=>GatewayApp.ui.openHistoryModal(document.getElementById('historyModalIpStore').value))" style="padding:5px 12px;border-radius:7px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);color:#93c5fd;font-size:11px;font-weight:700;cursor:pointer;">Этот год</button>
+                <button onclick="GatewayApp.actions.resetTraffic('all', document.getElementById('historyModalIpStore').value).then(()=>GatewayApp.ui.openHistoryModal(document.getElementById('historyModalIpStore').value))" style="padding:5px 12px;border-radius:7px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);color:#f87171;font-size:11px;font-weight:700;cursor:pointer;">Всё время</button>
+            </div>
+        </div>
+    </div>
+</div>
 </body>
 </html>

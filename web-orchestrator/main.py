@@ -8,7 +8,7 @@ import httpx
 import aiofiles
 from pathlib import Path
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 from collections import defaultdict
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
@@ -24,6 +24,7 @@ GSG_SUBSCRIPTION_FILE = GSG_CONFIG_DIR / "subscription.json"
 GSG_RULES_FILE = GSG_CONFIG_DIR / "rules.json"
 GSG_DHCP_FILE = GSG_CONFIG_DIR / "dhcp.json"
 GSG_LOG_FILE = GSG_CONFIG_DIR / "sing-box.log"
+GSG_TRAFFIC_HISTORY_FILE = GSG_CONFIG_DIR / "traffic_history.json"
 DNSMASQ_LEASES = Path("/var/lib/misc/dnsmasq.leases")
 
 GATEWAY_IP = os.getenv("GSG_GATEWAY_IP", "10.10.1.139")
@@ -90,6 +91,106 @@ class TrafficMonitor:
 
 monitor = TrafficMonitor()
 
+
+class TrafficHistory:
+    def __init__(self):
+        self.data: dict = {}   # ip -> {alltime_up, alltime_down, yearly, monthly, daily}
+        self.schedule: dict = {"type": "never", "time": "00:00"}
+        self._snapshots: dict = {}  # ip -> {up, down} of last saved session totals
+
+    async def load(self):
+        raw = await read_json(GSG_TRAFFIC_HISTORY_FILE, {})
+        self.data = raw.get("devices", {})
+        self.schedule = raw.get("schedule", {"type": "never", "time": "00:00"})
+        self._snapshots = {}
+
+    async def save(self):
+        try:
+            raw = {"devices": self.data, "schedule": self.schedule}
+            async with aiofiles.open(GSG_TRAFFIC_HISTORY_FILE, 'w') as f:
+                await f.write(json.dumps(raw, indent=2))
+        except Exception:
+            pass
+
+    def flush(self, session_stats: dict):
+        now = datetime.now()
+        day_key = now.strftime("%Y-%m-%d")
+        month_key = now.strftime("%Y-%m")
+        year_key = now.strftime("%Y")
+
+        for ip, stat in session_stats.items():
+            cur_up = stat.get('total_up', 0)
+            cur_down = stat.get('total_down', 0)
+            prev = self._snapshots.get(ip, {'up': 0, 'down': 0})
+            delta_up = max(0, cur_up - prev['up'])
+            delta_down = max(0, cur_down - prev['down'])
+            self._snapshots[ip] = {'up': cur_up, 'down': cur_down}
+
+            if delta_up == 0 and delta_down == 0:
+                continue
+
+            if ip not in self.data:
+                self.data[ip] = {'alltime_up': 0, 'alltime_down': 0,
+                                  'yearly': {}, 'monthly': {}, 'daily': {}}
+            d = self.data[ip]
+            d['alltime_up'] += delta_up
+            d['alltime_down'] += delta_down
+            for scope, key in [('yearly', year_key), ('monthly', month_key), ('daily', day_key)]:
+                if key not in d[scope]:
+                    d[scope][key] = {'up': 0, 'down': 0}
+                d[scope][key]['up'] += delta_up
+                d[scope][key]['down'] += delta_down
+
+    def reset(self, scope: str, ip: str = None):
+        now = datetime.now()
+        targets = [ip] if ip and ip in self.data else list(self.data.keys())
+        for t in targets:
+            if t not in self.data:
+                continue
+            d = self.data[t]
+            if scope == 'all':
+                self.data[t] = {'alltime_up': 0, 'alltime_down': 0,
+                                 'yearly': {}, 'monthly': {}, 'daily': {}}
+                # Advance snapshots so next flush starts from current session values
+                if t in self._snapshots:
+                    s = self._snapshots[t]
+                    self._snapshots[t] = {'up': s['up'], 'down': s['down']}
+            elif scope == 'daily':
+                today = now.strftime("%Y-%m-%d")
+                d['daily'].pop(today, None)
+            elif scope == 'monthly':
+                d['monthly'].pop(now.strftime("%Y-%m"), None)
+            elif scope == 'yearly':
+                d['yearly'].pop(now.strftime("%Y"), None)
+
+    async def run(self, mon):
+        last_day = datetime.now().strftime("%Y-%m-%d")
+        last_month = datetime.now().strftime("%Y-%m")
+        while True:
+            await asyncio.sleep(60)
+            try:
+                self.flush(dict(mon.stats))
+                await self.save()
+                now = datetime.now()
+                sched_type = self.schedule.get("type", "never")
+                sched_time = self.schedule.get("time", "00:00")
+                cur_day = now.strftime("%Y-%m-%d")
+                cur_month = now.strftime("%Y-%m")
+                cur_time = now.strftime("%H:%M")
+                if sched_type == "daily" and cur_day != last_day and cur_time >= sched_time:
+                    self.reset("daily")
+                    await self.save()
+                    last_day = cur_day
+                elif sched_type == "monthly" and cur_month != last_month:
+                    self.reset("monthly")
+                    await self.save()
+                    last_month = cur_month
+            except Exception:
+                pass
+
+
+traffic_history = TrafficHistory()
+
 _mac_vendor_cache: dict = {}
 
 @app.get("/api/vendor/{mac}")
@@ -111,7 +212,9 @@ async def get_mac_vendor(mac: str):
 
 @app.on_event("startup")
 async def startup_event():
+    await traffic_history.load()
     asyncio.create_task(monitor.poll_mihomo())
+    asyncio.create_task(traffic_history.run(monitor))
 
 @app.get("/api/traffic")
 async def get_traffic():
@@ -120,6 +223,30 @@ async def get_traffic():
 @app.get("/api/traffic/nodes")
 async def get_traffic_nodes():
     return dict(monitor.node_stats)
+
+@app.get("/api/traffic/history")
+async def get_traffic_history():
+    return {"devices": traffic_history.data, "schedule": traffic_history.schedule}
+
+class TrafficResetRequest(BaseModel):
+    scope: str  # all, daily, monthly, yearly
+    ip: Optional[str] = None
+
+@app.post("/api/traffic/reset")
+async def reset_traffic(data: TrafficResetRequest):
+    traffic_history.reset(data.scope, data.ip)
+    await traffic_history.save()
+    return {"success": True}
+
+class TrafficScheduleUpdate(BaseModel):
+    type: str   # never, daily, monthly
+    time: str = "00:00"
+
+@app.put("/api/traffic/schedule")
+async def update_traffic_schedule(data: TrafficScheduleUpdate):
+    traffic_history.schedule = {"type": data.type, "time": data.time}
+    await traffic_history.save()
+    return {"success": True}
 
 async def read_json(path: Path, default):
     if not path.exists():
