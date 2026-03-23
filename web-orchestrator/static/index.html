@@ -1371,7 +1371,10 @@
                 const el = document.getElementById('sidebarNetStats');
                 if (!el) return;
                 const providerIp = state.networkData?.direct?.ip || '—';
-                const providerFlag = state.networkData?.direct?.country ? utils.getFlagEmoji(state.networkData.direct.country) : '🌐';
+                const providerCc = state.networkData?.direct?.country?.toLowerCase() || '';
+                const providerFlag = providerCc
+                    ? `<img src="https://flagcdn.com/20x15/${providerCc}.png" width="20" height="15" style="border-radius:2px;vertical-align:middle;object-fit:cover;" onerror="this.style.display='none'">`
+                    : '🌐';
 
                 const totalNodeDown = Object.values(state.nodeTraffic).reduce((s,v) => s+(v.total_down||0), 0);
                 const totalNodeUp   = Object.values(state.nodeTraffic).reduce((s,v) => s+(v.total_up||0), 0);
@@ -1475,7 +1478,10 @@
                 if (!box) return;
                 const data = state.networkData;
 
-                const directFlag = data ? utils.getFlagEmoji(data.direct.country) : '⏳';
+                const directCc   = data?.direct?.country?.toLowerCase() || '';
+                const directFlag = directCc
+                    ? `<img src="https://flagcdn.com/40x30/${directCc}.png" width="40" height="30" style="border-radius:4px;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,0.4);" onerror="this.outerHTML='🌐'">`
+                    : '⏳';
                 const directIp   = data ? (data.direct.ip || '—') : '...';
                 const tunnelOk   = data && data.tunnel.status === 'ok';
 
